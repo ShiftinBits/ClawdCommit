@@ -1,8 +1,10 @@
-# ClawdCommit
+# <img src="images/clawd.svg" height="30"> ClawdCommit
 
 A VS Code extension that generates git commit messages using the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
-Stage your changes, click the button in the Source Control title bar (or run the command), and Claude will draft a commit message based on your staged diff and recent commit history.
+Stage your changes, click the button in the Source Control title bar, and ClawdCommit will draft a commit message based on your staged diff and recent commit history using Claude Code CLI.
+
+<img src="images/screenshot.png" height="200">
 
 ## Prerequisites
 
@@ -16,7 +18,7 @@ Stage your changes, click the button in the Source Control title bar (or run the
 
    ```sh
    git clone <repo-url>
-   cd cc-vscode-src-cntrl
+   cd ClawdCommit
    npm install
    ```
 
@@ -24,17 +26,7 @@ Stage your changes, click the button in the Source Control title bar (or run the
 
 3. Press **F5** (or **Run > Start Debugging**). This launches a new Extension Development Host window with the extension loaded.
 
-4. In the Extension Development Host, open a git repository, stage some changes, and click the ClawdCommit icon in the Source Control title bar — or run **ClawdCommit: Generate Commit Message with Claude** from the Command Palette (`Cmd+Shift+P`).
-
-### Watch mode
-
-To recompile automatically on file changes while developing:
-
-```sh
-npm run watch
-```
-
-## Building
+4. In the Extension Development Host, open a git repository, stage some changes, and click the ClawdCommit icon in the Source Control title bar.
 
 ### Development build
 
@@ -43,14 +35,6 @@ npm run compile
 ```
 
 This type-checks with `tsc` then bundles with esbuild into `dist/extension.js`.
-
-### Production build
-
-```sh
-npm run package
-```
-
-Same as the development build but with minification enabled and sourcemaps disabled.
 
 ### Packaging as a `.vsix`
 
