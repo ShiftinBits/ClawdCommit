@@ -1,4 +1,4 @@
-# <img src="images/clawd.svg" height="30"> ClawdCommit
+# <img src="images/clawd-icon.png" height="30"> ClawdCommit
 
 A VS Code extension that generates git commit messages using the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
