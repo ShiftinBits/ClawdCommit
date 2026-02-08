@@ -3,7 +3,7 @@ import { generateCommitMessage } from './generateCommitMessage';
 
 export function activate(context: vscode.ExtensionContext): void {
     const disposable = vscode.commands.registerCommand(
-        'claude-commit.generateCommitMessage',
+        'clawdcommit.generateCommitMessage',
         () => generateCommitMessage()
     );
     context.subscriptions.push(disposable);

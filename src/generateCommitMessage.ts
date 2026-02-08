@@ -16,14 +16,14 @@ export async function generateCommitMessage(): Promise<void> {
         diff = await getStagedDiff(repoRoot);
     } catch (err) {
         vscode.window.showErrorMessage(
-            `Claude Commit: Failed to get staged diff: ${err instanceof Error ? err.message : String(err)}`
+            `ClawdCommit: Failed to get staged diff: ${err instanceof Error ? err.message : String(err)}`
         );
         return;
     }
 
     if (!diff.trim()) {
         vscode.window.showWarningMessage(
-            'Claude Commit: No staged changes found. Stage some changes first.'
+            'ClawdCommit: No staged changes found. Stage some changes first.'
         );
         return;
     }
@@ -43,7 +43,7 @@ export async function generateCommitMessage(): Promise<void> {
     const message = await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: 'Claude Commit: Generating commit message...',
+            title: 'ClawdCommit: Generating commit message...',
             cancellable: true,
         },
         async (_progress, token) => {
@@ -58,7 +58,7 @@ export async function generateCommitMessage(): Promise<void> {
     const trimmed = stripCodeFences(message.trim());
     if (!trimmed) {
         vscode.window.showWarningMessage(
-            'Claude Commit: Claude returned an empty response.'
+            'ClawdCommit: Claude returned an empty response.'
         );
         return;
     }

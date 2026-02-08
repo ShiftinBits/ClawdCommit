@@ -1,9 +1,12 @@
 {
-  "name": "claude-commit",
-  "displayName": "Claude Commit",
+  "name": "clawdcommit",
+  "displayName": "ClawdCommit",
   "description": "Generate git commit messages with Claude Code CLI",
   "version": "0.1.0",
+  "publisher": "ShiftinBits",
   "license": "MIT",
+  "repository": "https://github.com/shiftinbits/clawdcommit",
+  "icon": "images/clawd-icon.png",
   "engines": {
     "vscode": "^1.85.0"
   },
@@ -25,16 +28,19 @@
   "contributes": {
     "commands": [
       {
-        "command": "claude-commit.generateCommitMessage",
+        "command": "clawdcommit.generateCommitMessage",
         "title": "Generate Commit Message with Claude",
-        "icon": "$(sparkle)",
-        "category": "Claude Commit"
+        "icon": {
+          "dark": "images/clawd-icon.svg",
+          "light": "images/clawd-icon.svg"
+        },
+        "category": "ClawdCommit"
       }
     ],
     "menus": {
       "scm/title": [
         {
-          "command": "claude-commit.generateCommitMessage",
+          "command": "clawdcommit.generateCommitMessage",
           "group": "navigation",
           "when": "scmProvider == git"
         }

@@ -58,7 +58,7 @@ export function runClaude(
 
             if (code !== 0) {
                 const msg = stderr.trim() || `Process exited with code ${code}`;
-                vscode.window.showErrorMessage(`Claude Commit: ${msg}`);
+                vscode.window.showErrorMessage(`ClawdCommit: ${msg}`);
                 settle(undefined);
                 return;
             }
@@ -71,11 +71,11 @@ export function runClaude(
 
             if (err.code === 'ENOENT') {
                 vscode.window.showErrorMessage(
-                    'Claude Commit: "claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
+                    'ClawdCommit: "claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
                 );
             } else {
                 vscode.window.showErrorMessage(
-                    `Claude Commit: Failed to start Claude CLI: ${err.message}`
+                    `ClawdCommit: Failed to start Claude CLI: ${err.message}`
                 );
             }
             settle(undefined);

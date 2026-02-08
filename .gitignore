@@ -1,3 +1,10 @@
+# Claude Code
+.claude/settings.local.json
+
+# Temp dirs
+temp/
+tmp/
+
 node_modules/
 dist/
 *.vsix

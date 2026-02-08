@@ -17,14 +17,14 @@ export function getGitRepository(): Repository | null {
 
     if (!gitExtension) {
         vscode.window.showErrorMessage(
-            'Claude Commit: Git extension not found.'
+            'ClawdCommit: Git extension not found.'
         );
         return null;
     }
 
     if (!gitExtension.isActive) {
         vscode.window.showErrorMessage(
-            'Claude Commit: Git extension is not active.'
+            'ClawdCommit: Git extension is not active.'
         );
         return null;
     }
@@ -33,7 +33,7 @@ export function getGitRepository(): Repository | null {
 
     if (api.repositories.length === 0) {
         vscode.window.showErrorMessage(
-            'Claude Commit: No git repository found in workspace.'
+            'ClawdCommit: No git repository found in workspace.'
         );
         return null;
     }
