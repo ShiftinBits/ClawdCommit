@@ -2,7 +2,7 @@
   "name": "clawdcommit",
   "displayName": "ClawdCommit",
   "description": "Generate git commit messages with Claude Code CLI",
-  "version": "0.1.0",
+  "version": "0.0.1",
   "publisher": "ShiftinBits",
   "license": "MIT",
   "repository": "https://github.com/shiftinbits/clawdcommit",

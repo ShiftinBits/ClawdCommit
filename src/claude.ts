@@ -18,7 +18,7 @@ export function runClaude(
             return;
         }
 
-        const child: ChildProcess = spawn('claude', ['-p', instruction], {
+        const child: ChildProcess = spawn('claude', ['-p', instruction, '--model', 'sonnet'], {
             cwd,
             stdio: ['pipe', 'pipe', 'pipe'],
             env: { ...process.env },
