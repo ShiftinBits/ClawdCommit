@@ -1,6 +1,6 @@
 # <img src="images/clawd-icon.png" height="30"> ClawdCommit
 
-[![Snyk Security Monitored](https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk)](https://snyk.io/test/github/shiftinbits/clawdcommit) [![License](https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Test Results](https://img.shields.io/github/actions/workflow/status/shiftinbits/clawdcommit/test.yml?branch=main&logo=jest&logoColor=white&label=tests)](https://github.com/shiftinbits/clawdcommit/actions/workflows/test.yml?query=branch%3Amain) [![Code Coverage](https://img.shields.io/codecov/c/github/shiftinbits/clawdcommit?logo=codecov&logoColor=white)](https://app.codecov.io/gh/shiftinbits/clawdcommit/) [![Snyk Security Monitored](https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk)](https://snyk.io/test/github/shiftinbits/clawdcommit) [![License](https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
 A VS Code extension that generates git commit messages using the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
@@ -52,6 +52,30 @@ npx @vscode/vsce package
 
 This produces a `.vsix` file you can install in VS Code via **Extensions > Install from VSIX...**.
 
+## Configuration
+
+All settings are available under **Settings > Extensions > ClawdCommit** or via `clawdCommit.*` in `settings.json`.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `clawdCommit.analysisModel` | `haiku` \| `sonnet` \| `opus` | `haiku` | Claude model for per-file analysis (map phase). |
+| `clawdCommit.synthesisModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for commit message synthesis (reduce phase). |
+| `clawdCommit.singleCallModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for single-call generation (small commits below the parallel threshold). |
+| `clawdCommit.parallelFileThreshold` | `number` (2–10) | `4` | Minimum changed files to trigger parallel map-reduce analysis. Fewer files use a single call. |
+| `clawdCommit.maxConcurrentAgents` | `number` (1–20) | `5` | Maximum parallel Claude analysis agents. Lower values reduce API load; higher values speed up large commits. |
+| `clawdCommit.includeFileContext` | `boolean` | `true` | Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage. |
+
+### How it works
+
+For small commits (fewer files than `parallelFileThreshold`), ClawdCommit sends a single request to Claude using the `singleCallModel`.
+
+For larger commits, it uses a **map-reduce** strategy:
+
+1. **Map** — Each changed file is analyzed in parallel by an agent using the `analysisModel` (bounded by `maxConcurrentAgents`).
+2. **Reduce** — A synthesis agent combines all per-file analyses into a final commit message using the `synthesisModel`.
+
+If the map-reduce path fails, it automatically falls back to the single-call approach.
+
 ## License
 
-MIT
+MIT — see [LICENSE](./LICENSE).
