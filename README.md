@@ -10,12 +10,6 @@ Stage your changes, click the button in the source control panel "Changes" bar, 
 
 ## Installation
 
-Click the following install button:
-
-[![Install in VSCode](https://img.shields.io/badge/VS_Code-Install_ClawdCommit-0098FF?style=for-the-badge)](vscode://extension/ShiftinBits.clawdcommit)
-
-Or install from the Visual Studio Marketplace:
-
 1. Visit the [ClawdCommit listing in the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ShiftinBits.clawdcommit)
 2. Click on "Install" button
 3. Proceed with the extension installation process
