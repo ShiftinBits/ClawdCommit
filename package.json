@@ -45,9 +45,81 @@
           "when": "scmProvider == git"
         }
       ]
+    },
+    "configuration": {
+      "title": "ClawdCommit",
+      "properties": {
+        "clawdCommit.analysisModel": {
+          "type": "string",
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ],
+          "default": "haiku",
+          "enumDescriptions": [
+            "Fast and cost-efficient (recommended for analysis)",
+            "Balanced capability and speed",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for per-file analysis (map phase)."
+        },
+        "clawdCommit.synthesisModel": {
+          "type": "string",
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ],
+          "default": "sonnet",
+          "enumDescriptions": [
+            "Fast and cost-efficient",
+            "Balanced capability and speed (recommended for synthesis)",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for commit message synthesis (reduce phase)."
+        },
+        "clawdCommit.singleCallModel": {
+          "type": "string",
+          "enum": [
+            "haiku",
+            "sonnet",
+            "opus"
+          ],
+          "default": "sonnet",
+          "enumDescriptions": [
+            "Fast and cost-efficient",
+            "Balanced capability and speed (recommended)",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for single-call commit generation (used for small commits below the parallel threshold)."
+        },
+        "clawdCommit.parallelFileThreshold": {
+          "type": "number",
+          "default": 4,
+          "minimum": 2,
+          "maximum": 10,
+          "markdownDescription": "Minimum number of changed files to trigger parallel map-reduce analysis. Commits with fewer files use a single-call approach."
+        },
+        "clawdCommit.maxConcurrentAgents": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "markdownDescription": "Maximum number of parallel Claude analysis agents. Lower values reduce API load; higher values speed up analysis of many-file commits."
+        },
+        "clawdCommit.includeFileContext": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage for large files."
+        }
+      }
     }
   },
   "scripts": {
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
     "compile": "npm run check-types && node esbuild.js",
     "check-types": "tsc --noEmit",
     "watch": "npm-run-all -p watch:*",
@@ -57,11 +129,15 @@
     "package": "npm run check-types && node esbuild.js --production"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/node": "^25.2.2",
     "@types/vscode": "^1.109.0",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.3",
+    "jest": "^29.7.0",
     "npm-run-all": "^4.1.5",
+    "ts-jest": "^29.3.2",
+    "ts-node": "^10.9.2",
     "typescript": "^5.9.3"
   }
 }
