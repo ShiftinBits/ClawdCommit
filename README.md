@@ -44,6 +44,37 @@ For larger commits, it uses a **map-reduce** strategy:
 
 If the map-reduce path fails, it automatically falls back to the single-call approach.
 
+```mermaid
+flowchart TB
+    trigger(["Run ClawdCommit"])
+    gather["Parse staged diff<br/>+ commit history"]
+    decide{"files ≥<br/>parallelFileThreshold?"}
+
+    subgraph mr ["Map-Reduce Path"]
+        direction TB
+        map["Map: Per-file analysis<br/>analysisModel<br/>× maxConcurrentAgents"]
+        reduce["Reduce: Synthesize<br/>synthesisModel"]
+        map --> reduce
+    end
+
+    single["Single-call generation<br/>singleCallModel"]
+    output(["Set commit message"])
+
+    trigger --> gather --> decide
+    decide -- "Yes" --> map
+    decide -- "No" --> single
+    reduce -- "Success" --> output
+    reduce -. "Fallback" .-> single
+    single --> output
+
+    classDef accent fill:#FFC107,stroke:#D39E00,color:#000
+    classDef primary fill:#4A90D9,stroke:#2E5A8B,color:#fff
+    classDef secondary fill:#7B68EE,stroke:#5A4FCF,color:#fff
+    class decide accent
+    class map,reduce primary
+    class single secondary
+```
+
 ## Running locally
 
 1. Clone the repo and install dependencies:
