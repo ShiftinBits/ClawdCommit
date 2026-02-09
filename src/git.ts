@@ -65,6 +65,30 @@ export function getRecentCommitLog(
     return runGitCommand(['log', '--oneline', `-${count}`], cwd);
 }
 
+/**
+ * Get the staged (index) version of a file via `git show :path`.
+ * Returns null if retrieval fails (deleted file, binary, too large, etc.).
+ */
+export function getStagedFileContent(
+    filePath: string,
+    cwd: string
+): Promise<string | null> {
+    return new Promise((resolve) => {
+        execFile(
+            'git',
+            ['show', `:${filePath}`],
+            { cwd, maxBuffer: 50 * 1024 },
+            (error, stdout) => {
+                if (error) {
+                    resolve(null);
+                    return;
+                }
+                resolve(stdout);
+            }
+        );
+    });
+}
+
 function runGitCommand(args: string[], cwd: string): Promise<string> {
     return new Promise((resolve, reject) => {
         execFile(

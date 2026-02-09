@@ -1,6 +1,10 @@
 import * as vscode from 'vscode';
-import { getGitRepository, getStagedDiff, getRecentCommitLog } from './git';
+import { getGitRepository, getStagedDiff, getStagedFileContent, getRecentCommitLog } from './git';
 import { runClaude } from './claude';
+import { parseUnifiedDiff, type FileDiff } from './diffParser';
+import { getSettings, type ClawdCommitSettings } from './settings';
+import { buildSingleCallInstruction, buildSingleCallContext } from './prompts';
+import { mapReduceGenerate } from './mapReduce';
 
 export async function generateCommitMessage(): Promise<void> {
     const repo = getGitRepository();
@@ -9,6 +13,7 @@ export async function generateCommitMessage(): Promise<void> {
     }
 
     const repoRoot = repo.rootUri.fsPath;
+    const settings = getSettings();
 
     // Check for staged changes
     let diff: string;
@@ -36,22 +41,44 @@ export async function generateCommitMessage(): Promise<void> {
         // Intentionally ignored — log is optional context
     }
 
-    const instruction = buildInstruction();
-    const context = buildContext(diff, log);
+    // Parse diff into per-file segments
+    let fileDiffs: FileDiff[];
+    try {
+        fileDiffs = parseUnifiedDiff(diff);
+    } catch {
+        // If parsing fails, fall back to single-call with raw diff
+        fileDiffs = [];
+    }
+
+    const useMapReduce =
+        fileDiffs.length >= settings.parallelFileThreshold;
 
     // Run Claude with cancellable progress
     const message = await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: 'ClawdCommit: Generating commit message...',
+            title: useMapReduce
+                ? 'ClawdCommit: Analyzing changes...'
+                : 'ClawdCommit: Generating commit message...',
             cancellable: true,
         },
-        async (_progress, token) => {
-            return runClaude(instruction, context, repoRoot, token);
+        async (progress, token) => {
+            if (useMapReduce) {
+                const result = await mapReduceGenerate(
+                    fileDiffs, log, repoRoot, settings, progress, token
+                );
+                // null means map-reduce failed — fall back to single-call
+                if (result === null && !token.isCancellationRequested) {
+                    progress.report({ message: 'Falling back to single generation...' });
+                    return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token);
+                }
+                return result;
+            }
+            return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token);
         }
     );
 
-    if (message === undefined) {
+    if (message === undefined || message === null) {
         return;
     }
 
@@ -66,23 +93,34 @@ export async function generateCommitMessage(): Promise<void> {
     repo.inputBox.value = trimmed;
 }
 
-function buildInstruction(): string {
-    return [
-        'Generate a concise git commit message for the staged changes provided via stdin.',
-        'Follow conventional commit style if the recent commit history uses it, otherwise match the existing style.',
-        'Output ONLY the commit message text.',
-        'No explanations, no markdown formatting, no code fences.',
-        'Keep the subject line under 72 characters.',
-        'If the changes warrant a body, add it after a blank line.',
-    ].join(' ');
-}
+async function singleCallGenerate(
+    diff: string,
+    log: string,
+    fileDiffs: FileDiff[],
+    cwd: string,
+    settings: ClawdCommitSettings,
+    token: vscode.CancellationToken
+): Promise<string | undefined> {
+    let fileContexts: Array<{ filePath: string; content: string }> | null = null;
 
-function buildContext(diff: string, log: string): string {
-    let ctx = '=== STAGED DIFF ===\n' + diff;
-    if (log.trim()) {
-        ctx += '\n\n=== RECENT COMMITS ===\n' + log;
+    if (settings.includeFileContext && fileDiffs.length > 0) {
+        const retrievable = fileDiffs.filter(
+            (f) => !f.isBinary && f.status !== 'deleted'
+        );
+        const results = await Promise.all(
+            retrievable.map(async (f) => {
+                const content = await getStagedFileContent(f.filePath, cwd);
+                return content ? { filePath: f.filePath, content } : null;
+            })
+        );
+        fileContexts = results.filter(
+            (r): r is { filePath: string; content: string } => r !== null
+        );
     }
-    return ctx;
+
+    const instruction = buildSingleCallInstruction();
+    const context = buildSingleCallContext(diff, log, fileContexts);
+    return runClaude(instruction, context, cwd, token, { model: settings.singleCallModel });
 }
 
 function stripCodeFences(text: string): string {

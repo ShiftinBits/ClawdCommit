@@ -45,6 +45,63 @@
           "when": "scmProvider == git"
         }
       ]
+    },
+    "configuration": {
+      "title": "ClawdCommit",
+      "properties": {
+        "clawdCommit.analysisModel": {
+          "type": "string",
+          "enum": ["haiku", "sonnet", "opus"],
+          "default": "haiku",
+          "enumDescriptions": [
+            "Fast and cost-efficient (recommended for analysis)",
+            "Balanced capability and speed",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for per-file analysis (map phase)."
+        },
+        "clawdCommit.synthesisModel": {
+          "type": "string",
+          "enum": ["haiku", "sonnet", "opus"],
+          "default": "sonnet",
+          "enumDescriptions": [
+            "Fast and cost-efficient",
+            "Balanced capability and speed (recommended for synthesis)",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for commit message synthesis (reduce phase)."
+        },
+        "clawdCommit.singleCallModel": {
+          "type": "string",
+          "enum": ["haiku", "sonnet", "opus"],
+          "default": "sonnet",
+          "enumDescriptions": [
+            "Fast and cost-efficient",
+            "Balanced capability and speed (recommended)",
+            "Most capable, slower and more expensive"
+          ],
+          "markdownDescription": "Claude model for single-call commit generation (used for small commits below the parallel threshold)."
+        },
+        "clawdCommit.parallelFileThreshold": {
+          "type": "number",
+          "default": 4,
+          "minimum": 2,
+          "maximum": 10,
+          "markdownDescription": "Minimum number of changed files to trigger parallel map-reduce analysis. Commits with fewer files use a single-call approach."
+        },
+        "clawdCommit.maxConcurrentAgents": {
+          "type": "number",
+          "default": 5,
+          "minimum": 1,
+          "maximum": 20,
+          "markdownDescription": "Maximum number of parallel Claude analysis agents. Lower values reduce API load; higher values speed up analysis of many-file commits."
+        },
+        "clawdCommit.includeFileContext": {
+          "type": "boolean",
+          "default": true,
+          "markdownDescription": "Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage for large files."
+        }
+      }
     }
   },
   "scripts": {
