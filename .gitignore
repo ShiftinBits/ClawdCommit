@@ -5,6 +5,9 @@
 temp/
 tmp/
 
+# Tests
+coverage/
+
 node_modules/
 dist/
 *.vsix
