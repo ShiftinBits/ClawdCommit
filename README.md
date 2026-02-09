@@ -1,10 +1,18 @@
 # <img src="images/clawd-icon.png" height="30"> ClawdCommit
 
+[![Snyk Security Monitored](https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk)](https://snyk.io/test/github/shiftinbits/clawdcommit) [![License](https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white)](LICENSE)
+
 A VS Code extension that generates git commit messages using the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
-Stage your changes, click the button in the Source Control title bar, and ClawdCommit will draft a commit message based on your staged diff and recent commit history using Claude Code CLI.
+Stage your changes, click the button in the source control panel "Changes" bar, and ClawdCommit will draft a commit message based on your staged diff and recent commit history using Claude Code CLI.
 
 <img src="images/screenshot.png" height="200">
+
+## Installation
+
+1. Visit the [ClawdCommit listing in the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ShiftinBits.clawdcommit)
+2. Click on "Install" button
+3. Proceed with the extension installation process
 
 ## Prerequisites
 
