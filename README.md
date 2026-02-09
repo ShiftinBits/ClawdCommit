@@ -12,7 +12,7 @@ Stage your changes, click the button in the source control panel "Changes" bar, 
 
 Click the following install button:
 
-[![Install in VSCode](https://img.shields.io/badge/VS_Code-Install_ClawdCommit-0098FF?style=for-the-badge)](vscode:extension/ShiftinBits.clawdcommit)
+[![Install in VSCode](https://img.shields.io/badge/VS_Code-Install_ClawdCommit-0098FF?style=for-the-badge)](vscode://extension/ShiftinBits.clawdcommit)
 
 Or install from the Visual Studio Marketplace:
 
