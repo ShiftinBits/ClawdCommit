@@ -1,6 +1,6 @@
 # <img src="images/clawd-icon.png" height="30"> ClawdCommit
 
-[![Test Results](https://img.shields.io/github/actions/workflow/status/shiftinbits/clawdcommit/test.yml?branch=main&logo=jest&logoColor=white&label=tests)](https://github.com/shiftinbits/clawdcommit/actions/workflows/test.yml?query=branch%3Amain) [![Code Coverage](https://img.shields.io/codecov/c/github/shiftinbits/clawdcommit?logo=codecov&logoColor=white)](https://app.codecov.io/gh/shiftinbits/clawdcommit/) [![Snyk Security Monitored](https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk)](https://snyk.io/test/github/shiftinbits/clawdcommit) [![License](https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white)](LICENSE)
+[![Current Release](https://img.shields.io/github/v/release/shiftinbits/clawdcommit?link=https%3A%2F%2Fmarketplace.visualstudio.com%2Fitems%3FitemName%3DShiftinBits.clawdcommit)](https://marketplace.visualstudio.com/items?itemName=ShiftinBits.clawdcommit) [![Test Results](https://img.shields.io/github/actions/workflow/status/shiftinbits/clawdcommit/test.yml?branch=main&logo=jest&logoColor=white&label=tests)](https://github.com/shiftinbits/clawdcommit/actions/workflows/test.yml?query=branch%3Amain) [![Code Coverage](https://img.shields.io/codecov/c/github/shiftinbits/clawdcommit?logo=codecov&logoColor=white)](https://app.codecov.io/gh/shiftinbits/clawdcommit/) [![Snyk Security Monitored](https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk)](https://snyk.io/test/github/shiftinbits/clawdcommit) [![License](https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white)](LICENSE)
 
 A VS Code extension that generates git commit messages using the [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code).
 
@@ -9,6 +9,12 @@ Stage your changes, click the button in the source control panel "Changes" bar, 
 <img src="images/screenshot.png" height="200">
 
 ## Installation
+
+Click the following install button:
+
+[![Install in VSCode](https://img.shields.io/badge/VS_Code-Install_ClawdCommit-0098FF?style=for-the-badge)](vscode:extension/ShiftinBits.clawdcommit)
+
+Or install from the Visual Studio Marketplace:
 
 1. Visit the [ClawdCommit listing in the Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=ShiftinBits.clawdcommit)
 2. Click on "Install" button
