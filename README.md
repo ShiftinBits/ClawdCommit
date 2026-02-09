@@ -20,6 +20,30 @@ Stage your changes, click the button in the source control panel "Changes" bar, 
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and available on your `PATH`
 - A git repository open in VS Code
 
+## Configuration
+
+All settings are available under **Settings > Extensions > ClawdCommit** or via `clawdCommit.*` in `settings.json`.
+
+| Setting | Type | Default | Description |
+|---------|------|---------|-------------|
+| `clawdCommit.analysisModel` | `haiku` \| `sonnet` \| `opus` | `haiku` | Claude model for per-file analysis (map phase). |
+| `clawdCommit.synthesisModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for commit message synthesis (reduce phase). |
+| `clawdCommit.singleCallModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for single-call generation (small commits below the parallel threshold). |
+| `clawdCommit.parallelFileThreshold` | `number` (2–10) | `4` | Minimum changed files to trigger parallel map-reduce analysis. Fewer files use a single call. |
+| `clawdCommit.maxConcurrentAgents` | `number` (1–20) | `5` | Maximum parallel Claude analysis agents. Lower values reduce API load; higher values speed up large commits. |
+| `clawdCommit.includeFileContext` | `boolean` | `true` | Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage. |
+
+### How it works
+
+For small commits (fewer files than `parallelFileThreshold`), ClawdCommit sends a single request to Claude using the `singleCallModel`.
+
+For larger commits, it uses a **map-reduce** strategy:
+
+1. **Map** — Each changed file is analyzed in parallel by an agent using the `analysisModel` (bounded by `maxConcurrentAgents`).
+2. **Reduce** — A synthesis agent combines all per-file analyses into a final commit message using the `synthesisModel`.
+
+If the map-reduce path fails, it automatically falls back to the single-call approach.
+
 ## Running locally
 
 1. Clone the repo and install dependencies:
@@ -51,30 +75,6 @@ npx @vscode/vsce package
 ```
 
 This produces a `.vsix` file you can install in VS Code via **Extensions > Install from VSIX...**.
-
-## Configuration
-
-All settings are available under **Settings > Extensions > ClawdCommit** or via `clawdCommit.*` in `settings.json`.
-
-| Setting | Type | Default | Description |
-|---------|------|---------|-------------|
-| `clawdCommit.analysisModel` | `haiku` \| `sonnet` \| `opus` | `haiku` | Claude model for per-file analysis (map phase). |
-| `clawdCommit.synthesisModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for commit message synthesis (reduce phase). |
-| `clawdCommit.singleCallModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for single-call generation (small commits below the parallel threshold). |
-| `clawdCommit.parallelFileThreshold` | `number` (2–10) | `4` | Minimum changed files to trigger parallel map-reduce analysis. Fewer files use a single call. |
-| `clawdCommit.maxConcurrentAgents` | `number` (1–20) | `5` | Maximum parallel Claude analysis agents. Lower values reduce API load; higher values speed up large commits. |
-| `clawdCommit.includeFileContext` | `boolean` | `true` | Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage. |
-
-### How it works
-
-For small commits (fewer files than `parallelFileThreshold`), ClawdCommit sends a single request to Claude using the `singleCallModel`.
-
-For larger commits, it uses a **map-reduce** strategy:
-
-1. **Map** — Each changed file is analyzed in parallel by an agent using the `analysisModel` (bounded by `maxConcurrentAgents`).
-2. **Reduce** — A synthesis agent combines all per-file analyses into a final commit message using the `synthesisModel`.
-
-If the map-reduce path fails, it automatically falls back to the single-call approach.
 
 ## License
 
