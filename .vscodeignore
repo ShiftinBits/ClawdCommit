@@ -1,5 +1,6 @@
 .vscode/
 src/
+resources/
 node_modules/
 .gitignore
 tsconfig.json

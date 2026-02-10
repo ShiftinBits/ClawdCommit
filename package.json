@@ -1,25 +1,57 @@
 {
   "name": "clawdcommit",
   "displayName": "ClawdCommit",
-  "description": "Generate git commit messages with Claude Code CLI",
+  "description": "AI-powered git commit messages in the Source Control pane — analyzes staged changes using Claude Code CLI",
   "version": "0.0.1",
   "publisher": "ShiftinBits",
   "license": "MIT",
   "repository": "https://github.com/shiftinbits/clawdcommit",
   "icon": "images/clawd-icon.png",
+  "galleryBanner": {
+    "color": "#1e1e1e",
+    "theme": "dark"
+  },
+  "preview": false,
+  "badges": [
+    {
+      "url": "https://img.shields.io/github/v/release/shiftinbits/clawdcommit",
+      "href": "https://marketplace.visualstudio.com/items?itemName=ShiftinBits.clawdcommit",
+      "description": "Current Release"
+    },
+    {
+      "url": "https://img.shields.io/github/actions/workflow/status/shiftinbits/clawdcommit/test.yml?branch=main&logo=jest&logoColor=white&label=tests",
+      "href": "https://github.com/shiftinbits/clawdcommit/actions/workflows/test.yml?query=branch%3Amain",
+      "description": "Test Results"
+    },
+    {
+      "url": "https://img.shields.io/codecov/c/github/shiftinbits/clawdcommit?logo=codecov&logoColor=white",
+      "href": "https://app.codecov.io/gh/shiftinbits/clawdcommit/",
+      "description": "Code Coverage"
+    },
+    {
+      "url": "https://img.shields.io/badge/security-monitored-8A2BE2?logo=snyk",
+      "href": "https://snyk.io/test/github/shiftinbits/clawdcommit",
+      "description": "Snyk Security Monitored"
+    },
+    {
+      "url": "https://img.shields.io/badge/license-MIT-3DA639?logo=opensourceinitiative&logoColor=white",
+      "href": "https://github.com/shiftinbits/clawdcommit/blob/main/LICENSE",
+      "description": "License: MIT"
+    }
+  ],
   "engines": {
     "vscode": "^1.109.0"
   },
   "categories": [
     "SCM Providers",
-    "Other"
+    "Machine Learning"
   ],
   "keywords": [
     "git",
-    "commit",
+    "commit message",
     "claude",
     "ai",
-    "scm"
+    "anthropic"
   ],
   "extensionDependencies": [
     "vscode.git"
@@ -46,6 +78,14 @@
         }
       ]
     },
+    "keybindings": [
+      {
+        "command": "clawdcommit.generateCommitMessage",
+        "key": "ctrl+shift+alt+c",
+        "mac": "cmd+shift+alt+c",
+        "when": "scmProvider == git"
+      }
+    ],
     "configuration": {
       "title": "ClawdCommit",
       "properties": {
@@ -58,9 +98,9 @@
           ],
           "default": "haiku",
           "enumDescriptions": [
-            "Fast and cost-efficient (recommended for analysis)",
-            "Balanced capability and speed",
-            "Most capable, slower and more expensive"
+            "Fastest — ideal for parallel per-file analysis (recommended)",
+            "Balanced capability and speed — good for complex diffs",
+            "Most capable — best results, highest latency and cost"
           ],
           "markdownDescription": "Claude model for per-file analysis (map phase)."
         },
@@ -73,9 +113,9 @@
           ],
           "default": "sonnet",
           "enumDescriptions": [
-            "Fast and cost-efficient",
-            "Balanced capability and speed (recommended for synthesis)",
-            "Most capable, slower and more expensive"
+            "Fastest — good for simple merges of per-file summaries",
+            "Balanced capability and speed — produces well-structured messages (recommended)",
+            "Most capable — best prose quality, highest latency and cost"
           ],
           "markdownDescription": "Claude model for commit message synthesis (reduce phase)."
         },
@@ -88,9 +128,9 @@
           ],
           "default": "sonnet",
           "enumDescriptions": [
-            "Fast and cost-efficient",
-            "Balanced capability and speed (recommended)",
-            "Most capable, slower and more expensive"
+            "Fastest — good enough for small, straightforward commits",
+            "Balanced capability and speed — reliable for most commits (recommended)",
+            "Most capable — best results, highest latency and cost"
           ],
           "markdownDescription": "Claude model for single-call commit generation (used for small commits below the parallel threshold)."
         },
@@ -126,7 +166,8 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "vscode:prepublish": "npm run package",
-    "package": "npm run check-types && node esbuild.js --production"
+    "package": "npm run check-types && node esbuild.js --production",
+    "generate:flowchart": "npx --yes @mermaid-js/mermaid-cli -i resources/flowchart.mmd -o images/flowchart.png -b transparent --scale 2"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
