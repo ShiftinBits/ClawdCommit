@@ -257,7 +257,7 @@ describe('mapReduceGenerate', () => {
 
         const reportCalls = progress.report.mock.calls;
         const synthCall = reportCalls.find(
-            (call: any[]) => call[0].message === 'Synthesizing commit message...'
+            (call: any[]) => call[0].message === 'Synthesizing commit message'
         );
         expect(synthCall).toBeDefined();
     });

@@ -113,7 +113,7 @@ describe('runClaude', () => {
 
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'ClawdCommit: something went wrong'
+                'something went wrong'
             );
         });
 
@@ -127,7 +127,7 @@ describe('runClaude', () => {
 
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'ClawdCommit: Process exited with code 1'
+                'Process exited with code 1'
             );
         });
     });
@@ -174,7 +174,7 @@ describe('runClaude', () => {
 
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'ClawdCommit: "claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
+                '"claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
             );
         });
 
@@ -190,7 +190,7 @@ describe('runClaude', () => {
 
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'ClawdCommit: "claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
+                '"claude" CLI not found. Install Claude Code and ensure it is in your PATH.'
             );
         });
     });

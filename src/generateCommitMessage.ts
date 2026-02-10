@@ -21,14 +21,14 @@ export async function generateCommitMessage(): Promise<void> {
         diff = await getStagedDiff(repoRoot);
     } catch (err) {
         vscode.window.showErrorMessage(
-            `ClawdCommit: Failed to get staged diff: ${err instanceof Error ? err.message : String(err)}`
+            `Failed to get staged diff: ${err instanceof Error ? err.message : String(err)}`
         );
         return;
     }
 
     if (!diff.trim()) {
         vscode.window.showWarningMessage(
-            'ClawdCommit: No staged changes found. Stage some changes first.'
+            'No staged changes found. Stage some changes first.'
         );
         return;
     }
@@ -58,8 +58,8 @@ export async function generateCommitMessage(): Promise<void> {
         {
             location: vscode.ProgressLocation.Notification,
             title: useMapReduce
-                ? 'ClawdCommit: Analyzing changes...'
-                : 'ClawdCommit: Generating commit message...',
+                ? 'Analyzing changes'
+                : 'Generating commit message',
             cancellable: true,
         },
         async (progress, token) => {
@@ -69,7 +69,7 @@ export async function generateCommitMessage(): Promise<void> {
                 );
                 // null means map-reduce failed — fall back to single-call
                 if (result === null && !token.isCancellationRequested) {
-                    progress.report({ message: 'Falling back to single generation...' });
+                    progress.report({ message: 'Falling back to single generation' });
                     return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token);
                 }
                 return result;
@@ -85,7 +85,7 @@ export async function generateCommitMessage(): Promise<void> {
     const trimmed = stripCodeFences(message.trim());
     if (!trimmed) {
         vscode.window.showWarningMessage(
-            'ClawdCommit: Claude returned an empty response.'
+            'Claude returned an empty response.'
         );
         return;
     }

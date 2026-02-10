@@ -21,7 +21,7 @@ describe('getGitRepository', () => {
 
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-            'ClawdCommit: Git extension not found.'
+            'Git extension not found.'
         );
     });
 
@@ -34,7 +34,7 @@ describe('getGitRepository', () => {
 
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-            'ClawdCommit: Git extension is not active.'
+            'Git extension is not active.'
         );
     });
 
@@ -48,7 +48,7 @@ describe('getGitRepository', () => {
 
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-            'ClawdCommit: No git repository found in workspace.'
+            'No git repository found in workspace.'
         );
     });
 

@@ -92,7 +92,7 @@ export async function mapReduceGenerate(
             completed++;
             progress.report({
                 increment: 70 / analyzable.length,
-                message: `Analyzing file ${completed} of ${analyzable.length}: ${basename(fileDiff.filePath)}...`,
+                message: `Analyzing file ${completed} of ${analyzable.length} — ${basename(fileDiff.filePath)}`,
             });
 
             if (result === undefined && !token.isCancellationRequested) {
@@ -127,7 +127,7 @@ export async function mapReduceGenerate(
     }
 
     // Reduce phase: synthesize commit message
-    progress.report({ increment: 0, message: 'Synthesizing commit message...' });
+    progress.report({ increment: 0, message: 'Synthesizing commit message' });
 
     const synthesisInstruction = buildSynthesisInstruction();
     const synthesisContext = buildSynthesisContext(analyses, binaryFiles, log);
