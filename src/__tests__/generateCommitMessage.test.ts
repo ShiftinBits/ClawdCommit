@@ -257,7 +257,7 @@ describe('generateCommitMessage', () => {
             await generateCommitMessage();
             // Only a.ts should trigger a fetch
             expect(mockGetStagedFileContent).toHaveBeenCalledTimes(1);
-            expect(mockGetStagedFileContent).toHaveBeenCalledWith('a.ts', '/repo');
+            expect(mockGetStagedFileContent).toHaveBeenCalledWith('a.ts', '/repo', expect.any(AbortSignal));
         });
 
         it('handles null content from getStagedFileContent', async () => {

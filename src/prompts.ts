@@ -19,11 +19,11 @@ export function buildAnalysisContext(
     diff: string,
     fileContent: string | null
 ): string {
-    let ctx = `=== FILE: ${filePath} ===\n\n`;
-    ctx += '=== DIFF ===\n' + diff;
-    ctx += '\n\n=== STAGED FILE CONTENT ===\n';
-    ctx += fileContent ?? '(not available)';
-    return ctx;
+    return [
+        `=== FILE: ${filePath} ===\n`,
+        `\n=== DIFF ===\n${diff}`,
+        `\n\n=== STAGED FILE CONTENT ===\n${fileContent ?? '(not available)'}`,
+    ].join('');
 }
 
 /** Build the instruction for commit message synthesis (reduce phase). */
@@ -45,19 +45,19 @@ export function buildSynthesisContext(
     binaryFiles: string[],
     log: string
 ): string {
-    let ctx = '=== PER-FILE ANALYSES ===\n';
+    const parts: string[] = ['=== PER-FILE ANALYSES ===\n'];
+
     for (const { filePath, analysis } of analyses) {
-        ctx += `\n--- ${filePath} ---\n${analysis}\n`;
+        parts.push(`\n--- ${filePath} ---\n${analysis}\n`);
     }
 
-    ctx += '\n=== BINARY FILES CHANGED ===\n';
-    ctx += binaryFiles.length > 0 ? binaryFiles.join('\n') : '(none)';
+    parts.push('\n=== BINARY FILES CHANGED ===\n');
+    parts.push(binaryFiles.length > 0 ? binaryFiles.join('\n') : '(none)');
+    parts.push('\n\n=== RECENT COMMITS ===\n');
+    parts.push(log.trim() || '(no history)');
+    parts.push(`\n\n=== SUMMARY ===\n${analyses.length} files analyzed, ${binaryFiles.length} binary files changed`);
 
-    ctx += '\n\n=== RECENT COMMITS ===\n';
-    ctx += log.trim() || '(no history)';
-
-    ctx += `\n\n=== SUMMARY ===\n${analyses.length} files analyzed, ${binaryFiles.length} binary files changed`;
-    return ctx;
+    return parts.join('');
 }
 
 /** Build the instruction for single-call generation. */
@@ -78,18 +78,18 @@ export function buildSingleCallContext(
     log: string,
     fileContexts: Array<{ filePath: string; content: string }> | null
 ): string {
-    let ctx = '=== STAGED DIFF ===\n' + diff;
+    const parts: string[] = ['=== STAGED DIFF ===\n' + diff];
 
     if (fileContexts && fileContexts.length > 0) {
-        ctx += '\n\n=== FULL FILE CONTENTS ===\n';
+        parts.push('\n\n=== FULL FILE CONTENTS ===\n');
         for (const { filePath, content } of fileContexts) {
-            ctx += `\n--- ${filePath} ---\n${content}\n`;
+            parts.push(`\n--- ${filePath} ---\n${content}\n`);
         }
     }
 
     if (log.trim()) {
-        ctx += '\n\n=== RECENT COMMITS ===\n' + log;
+        parts.push('\n\n=== RECENT COMMITS ===\n' + log);
     }
 
-    return ctx;
+    return parts.join('');
 }

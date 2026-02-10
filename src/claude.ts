@@ -32,11 +32,10 @@ export function runClaude(
         const child: ChildProcess = spawn('claude', ['-p', instruction, '--model', model], {
             cwd,
             stdio: ['pipe', 'pipe', 'pipe'],
-            env: { ...process.env },
         });
 
-        let stdout = '';
-        let stderr = '';
+        const stdoutChunks: Buffer[] = [];
+        const stderrChunks: Buffer[] = [];
         let settled = false;
 
         const settle = (value: string | undefined) => {
@@ -52,15 +51,17 @@ export function runClaude(
         });
 
         child.stdout?.on('data', (chunk: Buffer) => {
-            stdout += chunk.toString();
+            stdoutChunks.push(chunk);
         });
 
         child.stderr?.on('data', (chunk: Buffer) => {
-            stderr += chunk.toString();
+            stderrChunks.push(chunk);
         });
 
         child.on('close', (code) => {
             cancelListener.dispose();
+            const stdout = Buffer.concat(stdoutChunks).toString();
+            const stderr = Buffer.concat(stderrChunks).toString();
 
             if (cancellationToken.isCancellationRequested) {
                 settle(undefined);
@@ -95,7 +96,6 @@ export function runClaude(
             settle(undefined);
         });
 
-        child.stdin?.write(context);
-        child.stdin?.end();
+        child.stdin?.end(context);
     });
 }

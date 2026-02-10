@@ -152,6 +152,29 @@ describe('getStagedDiff', () => {
             expect.any(Function)
         );
     });
+
+    it('uses 10MB maxBuffer', async () => {
+        await getStagedDiff('/repo');
+
+        expect(mockExecFile).toHaveBeenCalledWith(
+            'git',
+            ['diff', '--staged'],
+            expect.objectContaining({ maxBuffer: 10 * 1024 * 1024 }),
+            expect.any(Function)
+        );
+    });
+
+    it('passes AbortSignal to execFile when provided', async () => {
+        const controller = new AbortController();
+        await getStagedDiff('/repo', controller.signal);
+
+        expect(mockExecFile).toHaveBeenCalledWith(
+            'git',
+            ['diff', '--staged'],
+            expect.objectContaining({ signal: controller.signal }),
+            expect.any(Function)
+        );
+    });
 });
 
 describe('getRecentCommitLog', () => {
@@ -210,5 +233,41 @@ describe('getStagedFileContent', () => {
             expect.objectContaining({ cwd: '/repo' }),
             expect.any(Function)
         );
+    });
+
+    it('uses 512KB maxBuffer', async () => {
+        await getStagedFileContent('path/to/file', '/repo');
+
+        expect(mockExecFile).toHaveBeenCalledWith(
+            'git',
+            ['show', ':path/to/file'],
+            expect.objectContaining({ maxBuffer: 512 * 1024 }),
+            expect.any(Function)
+        );
+    });
+
+    it('passes AbortSignal to execFile when provided', async () => {
+        const controller = new AbortController();
+        await getStagedFileContent('path/to/file', '/repo', controller.signal);
+
+        expect(mockExecFile).toHaveBeenCalledWith(
+            'git',
+            ['show', ':path/to/file'],
+            expect.objectContaining({ signal: controller.signal }),
+            expect.any(Function)
+        );
+    });
+
+    it('resolves null when aborted', async () => {
+        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
+            const err = new Error('aborted') as NodeJS.ErrnoException;
+            err.code = 'ABORT_ERR';
+            (callback as Function)(err, '', '');
+            return {} as any;
+        }) as any);
+
+        const controller = new AbortController();
+        const result = await getStagedFileContent('path/to/file', '/repo', controller.signal);
+        expect(result).toBeNull();
     });
 });

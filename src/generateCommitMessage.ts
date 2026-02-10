@@ -15,16 +15,19 @@ export async function generateCommitMessage(): Promise<void> {
     const repoRoot = repo.rootUri.fsPath;
     const settings = getSettings();
 
-    // Check for staged changes
-    let diff: string;
-    try {
-        diff = await getStagedDiff(repoRoot);
-    } catch (err) {
+    // Fetch staged diff and recent commit log concurrently
+    const [diffResult, logResult] = await Promise.allSettled([
+        getStagedDiff(repoRoot),
+        getRecentCommitLog(repoRoot, 5),
+    ]);
+
+    if (diffResult.status === 'rejected') {
         vscode.window.showErrorMessage(
-            `Failed to get staged diff: ${err instanceof Error ? err.message : String(err)}`
+            `Failed to get staged diff: ${diffResult.reason instanceof Error ? diffResult.reason.message : String(diffResult.reason)}`
         );
         return;
     }
+    const diff = diffResult.value;
 
     if (!diff.trim()) {
         vscode.window.showWarningMessage(
@@ -33,13 +36,7 @@ export async function generateCommitMessage(): Promise<void> {
         return;
     }
 
-    // Gather recent commit log (non-fatal if it fails, e.g. new repo)
-    let log = '';
-    try {
-        log = await getRecentCommitLog(repoRoot, 5);
-    } catch {
-        // Intentionally ignored — log is optional context
-    }
+    const log = logResult.status === 'fulfilled' ? logResult.value : '';
 
     // Parse diff into per-file segments
     let fileDiffs: FileDiff[];
@@ -63,18 +60,24 @@ export async function generateCommitMessage(): Promise<void> {
             cancellable: true,
         },
         async (progress, token) => {
-            if (useMapReduce) {
-                const result = await mapReduceGenerate(
-                    fileDiffs, log, repoRoot, settings, progress, token
-                );
-                // null means map-reduce failed — fall back to single-call
-                if (result === null && !token.isCancellationRequested) {
-                    progress.report({ message: 'Falling back to single generation' });
-                    return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token);
+            const abortController = new AbortController();
+            const cancelDisposable = token.onCancellationRequested(() => abortController.abort());
+            try {
+                if (useMapReduce) {
+                    const result = await mapReduceGenerate(
+                        fileDiffs, log, repoRoot, settings, progress, token, abortController.signal
+                    );
+                    // null means map-reduce failed — fall back to single-call
+                    if (result === null && !token.isCancellationRequested) {
+                        progress.report({ message: 'Falling back to single generation' });
+                        return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token, abortController.signal);
+                    }
+                    return result;
                 }
-                return result;
+                return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token, abortController.signal);
+            } finally {
+                cancelDisposable.dispose();
             }
-            return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token);
         }
     );
 
@@ -99,7 +102,8 @@ async function singleCallGenerate(
     fileDiffs: FileDiff[],
     cwd: string,
     settings: ClawdCommitSettings,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
+    signal?: AbortSignal
 ): Promise<string | undefined> {
     let fileContexts: Array<{ filePath: string; content: string }> | null = null;
 
@@ -109,7 +113,7 @@ async function singleCallGenerate(
         );
         const results = await Promise.all(
             retrievable.map(async (f) => {
-                const content = await getStagedFileContent(f.filePath, cwd);
+                const content = await getStagedFileContent(f.filePath, cwd, signal);
                 return content ? { filePath: f.filePath, content } : null;
             })
         );

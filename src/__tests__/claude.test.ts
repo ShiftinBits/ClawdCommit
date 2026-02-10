@@ -28,15 +28,14 @@ describe('runClaude', () => {
             expect(result).toBe('commit message');
         });
 
-        it('writes context to stdin and calls stdin.end()', async () => {
+        it('writes context to stdin via end()', async () => {
             const token = createMockCancellationToken();
 
             const promise = runClaude('instruction', 'my context', '/cwd', token);
             mockProcess.emitClose(0);
             await promise;
 
-            expect(mockProcess.stdin.write).toHaveBeenCalledWith('my context');
-            expect(mockProcess.stdin.end).toHaveBeenCalled();
+            expect(mockProcess.stdin.end).toHaveBeenCalledWith('my context');
         });
 
         it('accumulates multi-chunk stdout', async () => {
@@ -51,6 +50,19 @@ describe('runClaude', () => {
 
             expect(result).toBe('hello world');
         });
+
+        it('correctly joins multiple buffer chunks', async () => {
+            const token = createMockCancellationToken();
+
+            const promise = runClaude('instruction', 'context', '/cwd', token);
+            mockProcess.emitStdout('chunk1-');
+            mockProcess.emitStdout('chunk2-');
+            mockProcess.emitStdout('chunk3');
+            mockProcess.emitClose(0);
+
+            const result = await promise;
+            expect(result).toBe('chunk1-chunk2-chunk3');
+        });
     });
 
     describe('arguments', () => {
@@ -64,11 +76,10 @@ describe('runClaude', () => {
             expect(mockSpawn).toHaveBeenCalledWith(
                 'claude',
                 ['-p', 'my instruction', '--model', 'sonnet'],
-                expect.objectContaining({
+                {
                     cwd: '/my/cwd',
                     stdio: ['pipe', 'pipe', 'pipe'],
-                    env: expect.any(Object),
-                })
+                }
             );
         });
 

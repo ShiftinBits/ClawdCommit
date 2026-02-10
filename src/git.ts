@@ -54,15 +54,16 @@ export function getGitRepository(): Repository | null {
     return api.repositories[0];
 }
 
-export function getStagedDiff(cwd: string): Promise<string> {
-    return runGitCommand(['diff', '--staged'], cwd);
+export function getStagedDiff(cwd: string, signal?: AbortSignal): Promise<string> {
+    return runGitCommand(['diff', '--staged'], cwd, signal);
 }
 
 export function getRecentCommitLog(
     cwd: string,
-    count: number
+    count: number,
+    signal?: AbortSignal
 ): Promise<string> {
-    return runGitCommand(['log', '--oneline', `-${count}`], cwd);
+    return runGitCommand(['log', '--oneline', `-${count}`], cwd, signal);
 }
 
 /**
@@ -71,13 +72,14 @@ export function getRecentCommitLog(
  */
 export function getStagedFileContent(
     filePath: string,
-    cwd: string
+    cwd: string,
+    signal?: AbortSignal
 ): Promise<string | null> {
     return new Promise((resolve) => {
         execFile(
             'git',
             ['show', `:${filePath}`],
-            { cwd, maxBuffer: 50 * 1024 },
+            { cwd, maxBuffer: 512 * 1024, signal },
             (error, stdout) => {
                 if (error) {
                     resolve(null);
@@ -89,12 +91,12 @@ export function getStagedFileContent(
     });
 }
 
-function runGitCommand(args: string[], cwd: string): Promise<string> {
+function runGitCommand(args: string[], cwd: string, signal?: AbortSignal): Promise<string> {
     return new Promise((resolve, reject) => {
         execFile(
             'git',
             args,
-            { cwd, maxBuffer: 1024 * 1024 },
+            { cwd, maxBuffer: 10 * 1024 * 1024, signal },
             (error, stdout, stderr) => {
                 if (error) {
                     reject(new Error(stderr.trim() || error.message));

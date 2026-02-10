@@ -30,7 +30,8 @@ export async function mapReduceGenerate(
     cwd: string,
     settings: ClawdCommitSettings,
     progress: vscode.Progress<{ increment?: number; message?: string }>,
-    token: vscode.CancellationToken
+    token: vscode.CancellationToken,
+    signal?: AbortSignal
 ): Promise<string | null | undefined> {
     const analyzable = fileDiffs.filter((f) => !f.isBinary);
     const binaryFiles = fileDiffs.filter((f) => f.isBinary).map((f) => f.filePath);
@@ -50,7 +51,7 @@ export async function mapReduceGenerate(
                 if (fileDiff.status === 'deleted') {
                     return { path: fileDiff.filePath, content: null };
                 }
-                const content = await getStagedFileContent(fileDiff.filePath, cwd);
+                const content = await getStagedFileContent(fileDiff.filePath, cwd, signal);
                 return { path: fileDiff.filePath, content };
             },
             token
