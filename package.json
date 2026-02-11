@@ -89,22 +89,7 @@
     "configuration": {
       "title": "ClawdCommit",
       "properties": {
-        "clawdCommit.analysisModel": {
-          "type": "string",
-          "enum": [
-            "haiku",
-            "sonnet",
-            "opus"
-          ],
-          "default": "haiku",
-          "enumDescriptions": [
-            "Fastest — ideal for parallel per-file analysis (recommended)",
-            "Balanced capability and speed — good for complex diffs",
-            "Most capable — best results, highest latency and cost"
-          ],
-          "markdownDescription": "Claude model for per-file analysis (map phase)."
-        },
-        "clawdCommit.synthesisModel": {
+        "clawdCommit.model": {
           "type": "string",
           "enum": [
             "haiku",
@@ -113,45 +98,16 @@
           ],
           "default": "sonnet",
           "enumDescriptions": [
-            "Fastest — good for simple merges of per-file summaries",
-            "Balanced capability and speed — produces well-structured messages (recommended)",
-            "Most capable — best prose quality, highest latency and cost"
-          ],
-          "markdownDescription": "Claude model for commit message synthesis (reduce phase)."
-        },
-        "clawdCommit.singleCallModel": {
-          "type": "string",
-          "enum": [
-            "haiku",
-            "sonnet",
-            "opus"
-          ],
-          "default": "sonnet",
-          "enumDescriptions": [
-            "Fastest — good enough for small, straightforward commits",
-            "Balanced capability and speed — reliable for most commits (recommended)",
+            "Fastest and most economical",
+            "Balanced capability and speed (recommended)",
             "Most capable — best results, highest latency and cost"
           ],
-          "markdownDescription": "Claude model for single-call commit generation (used for small commits below the parallel threshold)."
-        },
-        "clawdCommit.parallelFileThreshold": {
-          "type": "number",
-          "default": 4,
-          "minimum": 2,
-          "maximum": 10,
-          "markdownDescription": "Minimum number of changed files to trigger parallel map-reduce analysis. Commits with fewer files use a single-call approach."
-        },
-        "clawdCommit.maxConcurrentAgents": {
-          "type": "number",
-          "default": 5,
-          "minimum": 1,
-          "maximum": 20,
-          "markdownDescription": "Maximum number of parallel Claude analysis agents. Lower values reduce API load; higher values speed up analysis of many-file commits."
+          "markdownDescription": "Claude model to use for commit message generation."
         },
         "clawdCommit.includeFileContext": {
           "type": "boolean",
           "default": true,
-          "markdownDescription": "Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage for large files."
+          "markdownDescription": "Allow Claude to read files in the working directory for additional context beyond the diff. Disable to restrict analysis to the staged diff only."
         }
       }
     }
@@ -166,8 +122,7 @@
     "watch:esbuild": "node esbuild.js --watch",
     "watch:tsc": "tsc --noEmit --watch --project tsconfig.json",
     "vscode:prepublish": "npm run package",
-    "package": "npm run check-types && node esbuild.js --production",
-    "generate:flowchart": "npx --yes @mermaid-js/mermaid-cli -i resources/flowchart.mmd -o images/flowchart.png -b transparent --scale 2"
+    "package": "npm run check-types && node esbuild.js --production"
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",

@@ -26,25 +26,12 @@ All settings are available under **Settings > Extensions > ClawdCommit** or via 
 
 | Setting | Type | Default | Description |
 |---------|------|---------|-------------|
-| `clawdCommit.analysisModel` | `haiku` \| `sonnet` \| `opus` | `haiku` | Claude model for per-file analysis (map phase). |
-| `clawdCommit.synthesisModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for commit message synthesis (reduce phase). |
-| `clawdCommit.singleCallModel` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model for single-call generation (small commits below the parallel threshold). |
-| `clawdCommit.parallelFileThreshold` | `number` (2–10) | `4` | Minimum changed files to trigger parallel map-reduce analysis. Fewer files use a single call. |
-| `clawdCommit.maxConcurrentAgents` | `number` (1–20) | `5` | Maximum parallel Claude analysis agents. Lower values reduce API load; higher values speed up large commits. |
-| `clawdCommit.includeFileContext` | `boolean` | `true` | Include full staged file content alongside the diff for richer analysis. Disable to reduce token usage. |
+| `clawdCommit.model` | `haiku` \| `sonnet` \| `opus` | `sonnet` | Claude model to use for commit message generation. |
+| `clawdCommit.includeFileContext` | `boolean` | `true` | Allow Claude to read files in the working directory for additional context beyond the diff. Disable to restrict analysis to the staged diff only. |
 
 ### How it works
 
-For small commits (fewer files than `parallelFileThreshold`), ClawdCommit sends a single request to Claude using the `singleCallModel`.
-
-For larger commits, it uses a **map-reduce** strategy:
-
-1. **Map** — Each changed file is analyzed in parallel by an agent using the `analysisModel` (bounded by `maxConcurrentAgents`).
-2. **Reduce** — A synthesis agent combines all per-file analyses into a final commit message using the `synthesisModel`.
-
-If the map-reduce path fails, it automatically falls back to the single-call approach.
-
-<img src="images/flowchart.png" alt="ClawdCommit architecture flowchart" width="500">
+When you trigger ClawdCommit, it reads your staged diff and recent commit history, optionally fetches the full content of changed files for richer context, and sends everything to Claude in a single request. Claude generates a commit message matching your project's style.
 
 ## Running locally
 

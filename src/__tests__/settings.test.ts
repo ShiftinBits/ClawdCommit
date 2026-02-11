@@ -6,22 +6,14 @@ describe('getSettings', () => {
         const settings = getSettings();
 
         expect(settings).toEqual({
-            analysisModel: 'haiku',
-            synthesisModel: 'sonnet',
-            singleCallModel: 'sonnet',
-            parallelFileThreshold: 4,
-            maxConcurrentAgents: 5,
+            model: 'sonnet',
             includeFileContext: true,
         });
     });
 
     it('returns custom values when configuration is overridden', () => {
         const customValues: Record<string, unknown> = {
-            analysisModel: 'opus',
-            synthesisModel: 'opus',
-            singleCallModel: 'haiku',
-            parallelFileThreshold: 10,
-            maxConcurrentAgents: 2,
+            model: 'opus',
             includeFileContext: false,
         };
 
@@ -33,11 +25,7 @@ describe('getSettings', () => {
         const settings = getSettings();
 
         expect(settings).toEqual({
-            analysisModel: 'opus',
-            synthesisModel: 'opus',
-            singleCallModel: 'haiku',
-            parallelFileThreshold: 10,
-            maxConcurrentAgents: 2,
+            model: 'opus',
             includeFileContext: false,
         });
     });
@@ -54,11 +42,7 @@ describe('getSettings', () => {
 
         getSettings();
 
-        expect(mockGet).toHaveBeenCalledWith('analysisModel', 'haiku');
-        expect(mockGet).toHaveBeenCalledWith('synthesisModel', 'sonnet');
-        expect(mockGet).toHaveBeenCalledWith('singleCallModel', 'sonnet');
-        expect(mockGet).toHaveBeenCalledWith('parallelFileThreshold', 4);
-        expect(mockGet).toHaveBeenCalledWith('maxConcurrentAgents', 5);
+        expect(mockGet).toHaveBeenCalledWith('model', 'sonnet');
         expect(mockGet).toHaveBeenCalledWith('includeFileContext', true);
     });
 });

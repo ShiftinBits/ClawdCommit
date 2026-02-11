@@ -1,10 +1,8 @@
 import * as vscode from 'vscode';
-import { getGitRepository, getStagedDiff, getStagedFileContent, getRecentCommitLog } from './git';
+import { getGitRepository, getStagedDiff, getRecentCommitLog } from './git';
 import { runClaude } from './claude';
-import { parseUnifiedDiff, type FileDiff } from './diffParser';
-import { getSettings, type ClawdCommitSettings } from './settings';
-import { buildSingleCallInstruction, buildSingleCallContext } from './prompts';
-import { mapReduceGenerate } from './mapReduce';
+import { getSettings } from './settings';
+import { buildInstruction, buildContext } from './prompts';
 
 export async function generateCommitMessage(): Promise<void> {
     const repo = getGitRepository();
@@ -38,46 +36,17 @@ export async function generateCommitMessage(): Promise<void> {
 
     const log = logResult.status === 'fulfilled' ? logResult.value : '';
 
-    // Parse diff into per-file segments
-    let fileDiffs: FileDiff[];
-    try {
-        fileDiffs = parseUnifiedDiff(diff);
-    } catch {
-        // If parsing fails, fall back to single-call with raw diff
-        fileDiffs = [];
-    }
-
-    const useMapReduce =
-        fileDiffs.length >= settings.parallelFileThreshold;
-
     // Run Claude with cancellable progress
     const message = await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
-            title: useMapReduce
-                ? 'Analyzing changes'
-                : 'Generating commit message',
+            title: 'Generating commit message',
             cancellable: true,
         },
-        async (progress, token) => {
-            const abortController = new AbortController();
-            const cancelDisposable = token.onCancellationRequested(() => abortController.abort());
-            try {
-                if (useMapReduce) {
-                    const result = await mapReduceGenerate(
-                        fileDiffs, log, repoRoot, settings, progress, token, abortController.signal
-                    );
-                    // null means map-reduce failed — fall back to single-call
-                    if (result === null && !token.isCancellationRequested) {
-                        progress.report({ message: 'Falling back to single generation' });
-                        return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token, abortController.signal);
-                    }
-                    return result;
-                }
-                return singleCallGenerate(diff, log, fileDiffs, repoRoot, settings, token, abortController.signal);
-            } finally {
-                cancelDisposable.dispose();
-            }
+        async (_progress, token) => {
+            const instruction = buildInstruction(settings.includeFileContext);
+            const context = buildContext(diff, log);
+            return runClaude(instruction, context, repoRoot, token, { model: settings.model });
         }
     );
 
@@ -94,37 +63,6 @@ export async function generateCommitMessage(): Promise<void> {
     }
 
     repo.inputBox.value = trimmed;
-}
-
-async function singleCallGenerate(
-    diff: string,
-    log: string,
-    fileDiffs: FileDiff[],
-    cwd: string,
-    settings: ClawdCommitSettings,
-    token: vscode.CancellationToken,
-    signal?: AbortSignal
-): Promise<string | undefined> {
-    let fileContexts: Array<{ filePath: string; content: string }> | null = null;
-
-    if (settings.includeFileContext && fileDiffs.length > 0) {
-        const retrievable = fileDiffs.filter(
-            (f) => !f.isBinary && f.status !== 'deleted'
-        );
-        const results = await Promise.all(
-            retrievable.map(async (f) => {
-                const content = await getStagedFileContent(f.filePath, cwd, signal);
-                return content ? { filePath: f.filePath, content } : null;
-            })
-        );
-        fileContexts = results.filter(
-            (r): r is { filePath: string; content: string } => r !== null
-        );
-    }
-
-    const instruction = buildSingleCallInstruction();
-    const context = buildSingleCallContext(diff, log, fileContexts);
-    return runClaude(instruction, context, cwd, token, { model: settings.singleCallModel });
 }
 
 function stripCodeFences(text: string): string {

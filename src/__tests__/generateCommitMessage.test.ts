@@ -1,47 +1,28 @@
 jest.mock('../git');
 jest.mock('../claude');
-jest.mock('../diffParser');
 jest.mock('../settings');
 jest.mock('../prompts');
-jest.mock('../mapReduce');
 
 import * as vscode from 'vscode';
 import { generateCommitMessage } from '../generateCommitMessage';
-import { getGitRepository, getStagedDiff, getStagedFileContent, getRecentCommitLog } from '../git';
+import { getGitRepository, getStagedDiff, getRecentCommitLog } from '../git';
 import { runClaude } from '../claude';
-import { parseUnifiedDiff } from '../diffParser';
 import { getSettings } from '../settings';
-import { buildSingleCallInstruction, buildSingleCallContext } from '../prompts';
-import { mapReduceGenerate } from '../mapReduce';
-import type { FileDiff } from '../diffParser';
+import { buildInstruction, buildContext } from '../prompts';
 import { createMockCancellationToken } from './helpers/mockCancellationToken';
 
 const mockGetGitRepository = getGitRepository as jest.MockedFunction<typeof getGitRepository>;
 const mockGetStagedDiff = getStagedDiff as jest.MockedFunction<typeof getStagedDiff>;
-const mockGetStagedFileContent = getStagedFileContent as jest.MockedFunction<typeof getStagedFileContent>;
 const mockGetRecentCommitLog = getRecentCommitLog as jest.MockedFunction<typeof getRecentCommitLog>;
 const mockRunClaude = runClaude as jest.MockedFunction<typeof runClaude>;
-const mockParseUnifiedDiff = parseUnifiedDiff as jest.MockedFunction<typeof parseUnifiedDiff>;
 const mockGetSettings = getSettings as jest.MockedFunction<typeof getSettings>;
-const mockBuildSingleCallInstruction = buildSingleCallInstruction as jest.MockedFunction<typeof buildSingleCallInstruction>;
-const mockBuildSingleCallContext = buildSingleCallContext as jest.MockedFunction<typeof buildSingleCallContext>;
-const mockMapReduceGenerate = mapReduceGenerate as jest.MockedFunction<typeof mapReduceGenerate>;
+const mockBuildInstruction = buildInstruction as jest.MockedFunction<typeof buildInstruction>;
+const mockBuildContext = buildContext as jest.MockedFunction<typeof buildContext>;
 const mockWithProgress = vscode.window.withProgress as jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function makeFileDiff(overrides: Partial<FileDiff> = {}): FileDiff {
-    return {
-        filePath: 'src/foo.ts',
-        oldPath: null,
-        rawDiff: 'diff content',
-        status: 'modified',
-        isBinary: false,
-        ...overrides,
-    };
-}
 
 let mockRepo: { rootUri: { fsPath: string }; inputBox: { value: string } };
 
@@ -55,20 +36,13 @@ beforeEach(() => {
     mockGetGitRepository.mockReturnValue(mockRepo as any);
     mockGetStagedDiff.mockResolvedValue('diff --git a/f.ts b/f.ts\n+line');
     mockGetRecentCommitLog.mockResolvedValue('abc123 previous commit');
-    mockParseUnifiedDiff.mockReturnValue([makeFileDiff(), makeFileDiff({ filePath: 'src/bar.ts' })]);
     mockGetSettings.mockReturnValue({
-        analysisModel: 'haiku',
-        synthesisModel: 'sonnet',
-        singleCallModel: 'sonnet',
-        parallelFileThreshold: 4,
-        maxConcurrentAgents: 5,
+        model: 'sonnet',
         includeFileContext: true,
     });
     mockRunClaude.mockResolvedValue('fix: correct null check');
-    mockGetStagedFileContent.mockResolvedValue('file content');
-    mockBuildSingleCallInstruction.mockReturnValue('instruction');
-    mockBuildSingleCallContext.mockReturnValue('context');
-    mockMapReduceGenerate.mockResolvedValue('feat: map-reduce result');
+    mockBuildInstruction.mockReturnValue('instruction');
+    mockBuildContext.mockReturnValue('context');
 
     // withProgress: invoke callback directly with mock progress/token
     mockWithProgress.mockImplementation(async (_opts: unknown, task: Function) => {
@@ -116,77 +90,10 @@ describe('generateCommitMessage', () => {
         });
     });
 
-    describe('path dispatch', () => {
-        it('uses single-call when file count < parallelFileThreshold', async () => {
-            // 2 files, threshold 4 → single-call
-            mockParseUnifiedDiff.mockReturnValue([makeFileDiff(), makeFileDiff({ filePath: 'b.ts' })]);
-            await generateCommitMessage();
-            expect(mockRunClaude).toHaveBeenCalled();
-            expect(mockMapReduceGenerate).not.toHaveBeenCalled();
-        });
-
-        it('uses map-reduce when file count >= parallelFileThreshold', async () => {
-            mockParseUnifiedDiff.mockReturnValue([
-                makeFileDiff({ filePath: 'a.ts' }),
-                makeFileDiff({ filePath: 'b.ts' }),
-                makeFileDiff({ filePath: 'c.ts' }),
-                makeFileDiff({ filePath: 'd.ts' }),
-            ]);
-            mockGetSettings.mockReturnValue({
-                analysisModel: 'haiku',
-                synthesisModel: 'sonnet',
-                singleCallModel: 'sonnet',
-                parallelFileThreshold: 4,
-                maxConcurrentAgents: 5,
-                includeFileContext: true,
-            });
-            await generateCommitMessage();
-            expect(mockMapReduceGenerate).toHaveBeenCalled();
-        });
-
-        it('falls back to single-call when map-reduce returns null', async () => {
-            mockParseUnifiedDiff.mockReturnValue([
-                makeFileDiff({ filePath: 'a.ts' }),
-                makeFileDiff({ filePath: 'b.ts' }),
-                makeFileDiff({ filePath: 'c.ts' }),
-                makeFileDiff({ filePath: 'd.ts' }),
-            ]);
-            mockMapReduceGenerate.mockResolvedValue(null);
-            await generateCommitMessage();
-            expect(mockMapReduceGenerate).toHaveBeenCalled();
-            expect(mockRunClaude).toHaveBeenCalled(); // fallback
-        });
-
-        it('does NOT fall back when map-reduce returns undefined (cancelled)', async () => {
-            mockParseUnifiedDiff.mockReturnValue([
-                makeFileDiff({ filePath: 'a.ts' }),
-                makeFileDiff({ filePath: 'b.ts' }),
-                makeFileDiff({ filePath: 'c.ts' }),
-                makeFileDiff({ filePath: 'd.ts' }),
-            ]);
-            mockMapReduceGenerate.mockResolvedValue(undefined);
-            await generateCommitMessage();
-            expect(mockMapReduceGenerate).toHaveBeenCalled();
-            expect(mockRunClaude).not.toHaveBeenCalled();
-            expect(mockRepo.inputBox.value).toBe('');
-        });
-    });
-
     describe('error resilience', () => {
-        it('falls through to single-call when parseUnifiedDiff throws', async () => {
-            mockParseUnifiedDiff.mockImplementation(() => {
-                throw new Error('parse error');
-            });
-            await generateCommitMessage();
-            // fileDiffs=[], 0 < threshold → single-call path
-            expect(mockRunClaude).toHaveBeenCalled();
-            expect(mockMapReduceGenerate).not.toHaveBeenCalled();
-        });
-
         it('ignores getRecentCommitLog failure', async () => {
             mockGetRecentCommitLog.mockRejectedValue(new Error('no commits'));
             await generateCommitMessage();
-            // Should still complete successfully
             expect(mockRunClaude).toHaveBeenCalled();
             expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
@@ -227,61 +134,26 @@ describe('generateCommitMessage', () => {
         });
     });
 
-    describe('singleCallGenerate', () => {
-        it('fetches file content when includeFileContext is true', async () => {
-            mockParseUnifiedDiff.mockReturnValue([makeFileDiff()]);
+    describe('commit generation', () => {
+        it('passes includeFileContext to buildInstruction', async () => {
             await generateCommitMessage();
-            expect(mockGetStagedFileContent).toHaveBeenCalled();
+            expect(mockBuildInstruction).toHaveBeenCalledWith(true);
         });
 
-        it('skips file content fetch when includeFileContext is false', async () => {
+        it('passes includeFileContext=false to buildInstruction when disabled', async () => {
             mockGetSettings.mockReturnValue({
-                analysisModel: 'haiku',
-                synthesisModel: 'sonnet',
-                singleCallModel: 'sonnet',
-                parallelFileThreshold: 4,
-                maxConcurrentAgents: 5,
+                model: 'sonnet',
                 includeFileContext: false,
             });
-            mockParseUnifiedDiff.mockReturnValue([makeFileDiff()]);
             await generateCommitMessage();
-            expect(mockGetStagedFileContent).not.toHaveBeenCalled();
-        });
-
-        it('excludes binary and deleted files from file content fetch', async () => {
-            mockParseUnifiedDiff.mockReturnValue([
-                makeFileDiff({ filePath: 'a.ts' }),
-                makeFileDiff({ filePath: 'b.png', isBinary: true }),
-                makeFileDiff({ filePath: 'c.ts', status: 'deleted' }),
-            ]);
-            await generateCommitMessage();
-            // Only a.ts should trigger a fetch
-            expect(mockGetStagedFileContent).toHaveBeenCalledTimes(1);
-            expect(mockGetStagedFileContent).toHaveBeenCalledWith('a.ts', '/repo', expect.any(AbortSignal));
-        });
-
-        it('handles null content from getStagedFileContent', async () => {
-            mockGetStagedFileContent.mockResolvedValue(null);
-            mockParseUnifiedDiff.mockReturnValue([makeFileDiff()]);
-            await generateCommitMessage();
-            // Should pass empty/filtered contexts, not crash
-            expect(mockBuildSingleCallContext).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.any(String),
-                [] // null content filtered out
-            );
+            expect(mockBuildInstruction).toHaveBeenCalledWith(false);
         });
 
         it('passes correct model to runClaude', async () => {
             mockGetSettings.mockReturnValue({
-                analysisModel: 'haiku',
-                synthesisModel: 'sonnet',
-                singleCallModel: 'opus',
-                parallelFileThreshold: 4,
-                maxConcurrentAgents: 5,
+                model: 'opus',
                 includeFileContext: true,
             });
-            mockParseUnifiedDiff.mockReturnValue([makeFileDiff()]);
             await generateCommitMessage();
             expect(mockRunClaude).toHaveBeenCalledWith(
                 expect.any(String),
