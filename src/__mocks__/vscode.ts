@@ -46,4 +46,29 @@ const Uri = {
     parse: (str: string) => ({ fsPath: str, scheme: 'file', path: str }),
 };
 
-export { workspace, window, commands, extensions, ProgressLocation, Uri };
+const LanguageModelChatMessage = {
+    User: jest.fn((content: string) => ({ role: 'user', content })),
+};
+
+class LanguageModelError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = 'LanguageModelError';
+    }
+}
+
+const lm = {
+    selectChatModels: jest.fn().mockResolvedValue([]),
+};
+
+export {
+    workspace,
+    window,
+    commands,
+    extensions,
+    ProgressLocation,
+    Uri,
+    lm,
+    LanguageModelChatMessage,
+    LanguageModelError,
+};
