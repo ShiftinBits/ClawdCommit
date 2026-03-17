@@ -139,7 +139,7 @@ describe('LmApiProvider', () => {
             );
         });
 
-        it('returns undefined for non-LanguageModelError exceptions', async () => {
+        it('shows generic error for non-LanguageModelError exceptions', async () => {
             const model = createMockModel({
                 sendRequest: jest.fn().mockRejectedValue(new Error('network error')),
             });
@@ -150,6 +150,9 @@ describe('LmApiProvider', () => {
 
             const result = await provider.generateMessage('inst', 'ctx', token);
             expect(result).toBeUndefined();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                'Unexpected error: network error'
+            );
         });
     });
 

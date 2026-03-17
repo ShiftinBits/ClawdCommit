@@ -33,17 +33,23 @@ export class LmApiProvider implements CommitMessageProvider {
             }
             return chunks.join('');
         } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
             if (err instanceof vscode.LanguageModelError) {
-                vscode.window.showErrorMessage(`Claude request failed: ${err.message}`);
+                vscode.window.showErrorMessage(`Claude request failed: ${message}`);
+            } else {
+                vscode.window.showErrorMessage(`Unexpected error: ${message}`);
             }
             return undefined;
         }
     }
 
+    private toFamilyName(model: string): string {
+        return `claude-${model}`;
+    }
+
     private async selectModel(preferredModel?: string): Promise<vscode.LanguageModelChat | undefined> {
         if (preferredModel) {
-            const familyName = `claude-${preferredModel}`;
-            const exact = await vscode.lm.selectChatModels({ vendor: 'anthropic', family: familyName });
+            const exact = await vscode.lm.selectChatModels({ vendor: 'anthropic', family: this.toFamilyName(preferredModel) });
             if (exact.length > 0) { return exact[0]; }
         }
 
@@ -51,7 +57,7 @@ export class LmApiProvider implements CommitMessageProvider {
         if (anyAnthropic.length > 0) { return anyAnthropic[0]; }
 
         if (preferredModel) {
-            const byFamily = await vscode.lm.selectChatModels({ family: `claude-${preferredModel}` });
+            const byFamily = await vscode.lm.selectChatModels({ family: this.toFamilyName(preferredModel) });
             if (byFamily.length > 0) { return byFamily[0]; }
         }
 

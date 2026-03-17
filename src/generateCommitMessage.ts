@@ -15,7 +15,6 @@ export async function generateCommitMessage(
 
     const repoRoot = repo.rootUri.fsPath;
     const settings = getSettings();
-    const provider = createProvider(repoRoot);
 
     const [diffResult, logResult] = await Promise.allSettled([
         repo.diff(true),
@@ -40,6 +39,8 @@ export async function generateCommitMessage(
     const log = logResult.status === 'fulfilled'
         ? formatCommitLog(logResult.value)
         : '';
+
+    const provider = createProvider(repoRoot);
 
     const message = await vscode.window.withProgress(
         {
