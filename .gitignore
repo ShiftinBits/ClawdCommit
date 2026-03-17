@@ -1,5 +1,9 @@
 # Claude Code
 .claude/settings.local.json
+.claude/plans/
+.claude/worktrees/
+docs/superpowers/
+docs/plans/
 
 # Temp dirs
 temp/
