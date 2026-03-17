@@ -16,6 +16,9 @@ export interface Repository {
     readonly rootUri: Uri;
     readonly inputBox: InputBox;
     readonly state: RepositoryState;
+    diff(cached?: boolean): Promise<string>;
+    log(options?: LogOptions): Promise<Commit[]>;
+    show(ref: string, path: string): Promise<string>;
 }
 
 export interface RepositoryState {
@@ -54,6 +57,27 @@ export const enum Status {
     UNTRACKED,
     IGNORED,
     INTENT_TO_ADD,
+}
+
+export interface Commit {
+    readonly hash: string;
+    readonly message: string;
+    readonly parents: string[];
+    readonly authorDate?: Date;
+    readonly authorName?: string;
+    readonly authorEmail?: string;
+    readonly commitDate?: Date;
+}
+
+export interface LogOptions {
+    readonly maxEntries?: number;
+    readonly path?: string;
+    readonly range?: string;
+    readonly reverse?: boolean;
+    readonly sortByAuthorDate?: boolean;
+    readonly shortStats?: boolean;
+    readonly author?: string;
+    readonly grep?: string;
 }
 
 export interface API {

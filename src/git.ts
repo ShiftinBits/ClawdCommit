@@ -1,5 +1,4 @@
 import * as vscode from 'vscode';
-import { execFile } from 'child_process';
 import type { API, GitExtension, Repository } from './types/git';
 
 /**
@@ -54,56 +53,12 @@ export function getGitRepository(): Repository | null {
     return api.repositories[0];
 }
 
-export function getStagedDiff(cwd: string, signal?: AbortSignal): Promise<string> {
-    return runGitCommand(['diff', '--staged'], cwd, signal);
-}
-
-export function getRecentCommitLog(
-    cwd: string,
-    count: number,
-    signal?: AbortSignal
-): Promise<string> {
-    return runGitCommand(['log', '--oneline', `-${count}`], cwd, signal);
-}
-
 /**
- * Get the staged (index) version of a file via `git show :path`.
- * Returns null if retrieval fails (deleted file, binary, too large, etc.).
+ * Format commits from the VSCode git API into the oneline format
+ * expected by the prompt context (e.g. "abc1234 fix: correct null check").
  */
-export function getStagedFileContent(
-    filePath: string,
-    cwd: string,
-    signal?: AbortSignal
-): Promise<string | null> {
-    return new Promise((resolve) => {
-        execFile(
-            'git',
-            ['show', `:${filePath}`],
-            { cwd, maxBuffer: 512 * 1024, signal },
-            (error, stdout) => {
-                if (error) {
-                    resolve(null);
-                    return;
-                }
-                resolve(stdout);
-            }
-        );
-    });
-}
-
-function runGitCommand(args: string[], cwd: string, signal?: AbortSignal): Promise<string> {
-    return new Promise((resolve, reject) => {
-        execFile(
-            'git',
-            args,
-            { cwd, maxBuffer: 10 * 1024 * 1024, signal },
-            (error, stdout, stderr) => {
-                if (error) {
-                    reject(new Error(stderr.trim() || error.message));
-                    return;
-                }
-                resolve(stdout);
-            }
-        );
-    });
+export function formatCommitLog(commits: { hash: string; message: string }[]): string {
+    return commits
+        .map((c) => `${c.hash.slice(0, 7)} ${c.message.split('\n')[0]}`)
+        .join('\n');
 }

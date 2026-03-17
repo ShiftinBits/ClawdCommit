@@ -1,17 +1,5 @@
-jest.mock('child_process');
-
-import { execFile } from 'child_process';
-import { getGitRepository, getStagedDiff, getRecentCommitLog, getStagedFileContent } from '../git';
+import { getGitRepository, formatCommitLog } from '../git';
 import * as vscode from 'vscode';
-
-const mockExecFile = execFile as unknown as jest.MockedFunction<typeof execFile>;
-
-beforeEach(() => {
-    mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-        (callback as Function)(null, 'stdout', '');
-        return {} as any;
-    }) as any);
-});
 
 describe('getGitRepository', () => {
     it('returns null and shows error when git extension not found', () => {
@@ -121,153 +109,32 @@ describe('getGitRepository', () => {
     });
 });
 
-describe('getStagedDiff', () => {
-    it('resolves with stdout on success', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            (callback as Function)(null, 'diff output', '');
-            return {} as any;
-        }) as any);
+describe('formatCommitLog', () => {
+    it('formats commits as short-hash + first line of message', () => {
+        const commits = [
+            { hash: 'abc1234567890', message: 'fix: correct null check' },
+            { hash: 'def5678901234', message: 'feat: add login page' },
+        ];
 
-        const result = await getStagedDiff('/repo');
-
-        expect(result).toBe('diff output');
-    });
-
-    it('rejects with stderr message on error', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            (callback as Function)(new Error('fail'), '', 'git error message');
-            return {} as any;
-        }) as any);
-
-        await expect(getStagedDiff('/repo')).rejects.toThrow('git error message');
-    });
-
-    it('passes correct args', async () => {
-        await getStagedDiff('/repo');
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['diff', '--staged'],
-            expect.objectContaining({ cwd: '/repo' }),
-            expect.any(Function)
+        expect(formatCommitLog(commits)).toBe(
+            'abc1234 fix: correct null check\ndef5678 feat: add login page'
         );
     });
 
-    it('uses 10MB maxBuffer', async () => {
-        await getStagedDiff('/repo');
+    it('uses only the first line of multi-line messages', () => {
+        const commits = [
+            { hash: 'abc1234567890', message: 'fix: short subject\n\nLong body here' },
+        ];
 
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['diff', '--staged'],
-            expect.objectContaining({ maxBuffer: 10 * 1024 * 1024 }),
-            expect.any(Function)
-        );
+        expect(formatCommitLog(commits)).toBe('abc1234 fix: short subject');
     });
 
-    it('passes AbortSignal to execFile when provided', async () => {
-        const controller = new AbortController();
-        await getStagedDiff('/repo', controller.signal);
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['diff', '--staged'],
-            expect.objectContaining({ signal: controller.signal }),
-            expect.any(Function)
-        );
-    });
-});
-
-describe('getRecentCommitLog', () => {
-    it('resolves with stdout on success', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            (callback as Function)(null, 'log output', '');
-            return {} as any;
-        }) as any);
-
-        const result = await getRecentCommitLog('/repo', 5);
-
-        expect(result).toBe('log output');
+    it('returns empty string for empty array', () => {
+        expect(formatCommitLog([])).toBe('');
     });
 
-    it('passes correct args including count', async () => {
-        await getRecentCommitLog('/repo', 5);
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['log', '--oneline', '-5'],
-            expect.objectContaining({ cwd: '/repo' }),
-            expect.any(Function)
-        );
-    });
-});
-
-describe('getStagedFileContent', () => {
-    it('resolves with file content on success', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            (callback as Function)(null, 'file content here', '');
-            return {} as any;
-        }) as any);
-
-        const result = await getStagedFileContent('path/to/file', '/repo');
-
-        expect(result).toBe('file content here');
-    });
-
-    it('resolves with null on error', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            (callback as Function)(new Error('not found'), '', '');
-            return {} as any;
-        }) as any);
-
-        const result = await getStagedFileContent('path/to/file', '/repo');
-
-        expect(result).toBeNull();
-    });
-
-    it('passes correct args', async () => {
-        await getStagedFileContent('path/to/file', '/repo');
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['show', ':path/to/file'],
-            expect.objectContaining({ cwd: '/repo' }),
-            expect.any(Function)
-        );
-    });
-
-    it('uses 512KB maxBuffer', async () => {
-        await getStagedFileContent('path/to/file', '/repo');
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['show', ':path/to/file'],
-            expect.objectContaining({ maxBuffer: 512 * 1024 }),
-            expect.any(Function)
-        );
-    });
-
-    it('passes AbortSignal to execFile when provided', async () => {
-        const controller = new AbortController();
-        await getStagedFileContent('path/to/file', '/repo', controller.signal);
-
-        expect(mockExecFile).toHaveBeenCalledWith(
-            'git',
-            ['show', ':path/to/file'],
-            expect.objectContaining({ signal: controller.signal }),
-            expect.any(Function)
-        );
-    });
-
-    it('resolves null when aborted', async () => {
-        mockExecFile.mockImplementation(((_cmd: unknown, _args: unknown, _opts: unknown, callback: unknown) => {
-            const err = new Error('aborted') as NodeJS.ErrnoException;
-            err.code = 'ABORT_ERR';
-            (callback as Function)(err, '', '');
-            return {} as any;
-        }) as any);
-
-        const controller = new AbortController();
-        const result = await getStagedFileContent('path/to/file', '/repo', controller.signal);
-        expect(result).toBeNull();
+    it('handles short hashes gracefully', () => {
+        const commits = [{ hash: 'abc', message: 'test' }];
+        expect(formatCommitLog(commits)).toBe('abc test');
     });
 });
