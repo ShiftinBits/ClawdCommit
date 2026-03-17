@@ -1,10 +1,13 @@
 import * as vscode from 'vscode';
 import { getGitRepository, formatCommitLog } from './git';
-import { runClaude } from './claude';
 import { getSettings } from './settings';
 import { buildInstruction, buildContext } from './prompts';
+import type { ProviderFactory } from './providers/types';
 
-export async function generateCommitMessage(): Promise<void> {
+export async function generateCommitMessage(
+    createProvider: ProviderFactory,
+    canReadFiles: boolean = true
+): Promise<void> {
     const repo = getGitRepository();
     if (!repo) {
         return;
@@ -12,11 +15,8 @@ export async function generateCommitMessage(): Promise<void> {
 
     const repoRoot = repo.rootUri.fsPath;
     const settings = getSettings();
+    const provider = createProvider(repoRoot);
 
-    // Use VSCode's git extension API for both the staged diff and commit log
-    // rather than shelling out to the CLI.  The API routes through the same
-    // managed git process that handles staging, so it always reflects the
-    // current index state shown in the Source Control pane.
     const [diffResult, logResult] = await Promise.allSettled([
         repo.diff(true),
         repo.log({ maxEntries: 5 }),
@@ -41,7 +41,6 @@ export async function generateCommitMessage(): Promise<void> {
         ? formatCommitLog(logResult.value)
         : '';
 
-    // Run Claude with cancellable progress
     const message = await vscode.window.withProgress(
         {
             location: vscode.ProgressLocation.Notification,
@@ -49,9 +48,9 @@ export async function generateCommitMessage(): Promise<void> {
             cancellable: true,
         },
         async (_progress, token) => {
-            const instruction = buildInstruction(settings.includeFileContext);
+            const instruction = buildInstruction(settings.includeFileContext, canReadFiles);
             const context = buildContext(diff, log);
-            return runClaude(instruction, context, repoRoot, token, { model: settings.model });
+            return provider.generateMessage(instruction, context, token, { model: settings.model });
         }
     );
 
@@ -71,7 +70,6 @@ export async function generateCommitMessage(): Promise<void> {
 }
 
 function stripCodeFences(text: string): string {
-    // Strip wrapping ```...``` if Claude adds them despite instructions
     const fencePattern = /^```(?:\w*)\n([\s\S]*?)\n```$/;
     const match = text.match(fencePattern);
     return match ? match[1].trim() : text;

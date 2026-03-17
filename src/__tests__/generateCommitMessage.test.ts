@@ -1,19 +1,17 @@
 jest.mock('../git');
-jest.mock('../claude');
 jest.mock('../settings');
 jest.mock('../prompts');
 
 import * as vscode from 'vscode';
 import { generateCommitMessage } from '../generateCommitMessage';
 import { getGitRepository, formatCommitLog } from '../git';
-import { runClaude } from '../claude';
 import { getSettings } from '../settings';
 import { buildInstruction, buildContext } from '../prompts';
 import { createMockCancellationToken } from './helpers/mockCancellationToken';
+import type { ProviderFactory, CommitMessageProvider } from '../providers/types';
 
 const mockGetGitRepository = getGitRepository as jest.MockedFunction<typeof getGitRepository>;
 const mockFormatCommitLog = formatCommitLog as jest.MockedFunction<typeof formatCommitLog>;
-const mockRunClaude = runClaude as jest.MockedFunction<typeof runClaude>;
 const mockGetSettings = getSettings as jest.MockedFunction<typeof getSettings>;
 const mockBuildInstruction = buildInstruction as jest.MockedFunction<typeof buildInstruction>;
 const mockBuildContext = buildContext as jest.MockedFunction<typeof buildContext>;
@@ -32,6 +30,9 @@ let mockRepo: {
     diff: jest.Mock;
     log: jest.Mock;
 };
+
+let mockGenerateMessage: jest.Mock;
+let mockProviderFactory: jest.Mock;
 
 // ---------------------------------------------------------------------------
 // Setup
@@ -56,11 +57,14 @@ beforeEach(() => {
         model: 'sonnet',
         includeFileContext: true,
     });
-    mockRunClaude.mockResolvedValue('fix: correct null check');
     mockBuildInstruction.mockReturnValue('instruction');
     mockBuildContext.mockReturnValue('context');
 
-    // withProgress: invoke callback directly with mock progress/token
+    mockGenerateMessage = jest.fn().mockResolvedValue('fix: correct null check');
+    mockProviderFactory = jest.fn().mockReturnValue({
+        generateMessage: mockGenerateMessage,
+    } as CommitMessageProvider);
+
     mockWithProgress.mockImplementation(async (_opts: unknown, task: Function) => {
         const progress = { report: jest.fn() };
         const token = createMockCancellationToken();
@@ -76,13 +80,13 @@ describe('generateCommitMessage', () => {
     describe('early exits', () => {
         it('returns early when getGitRepository returns null', async () => {
             mockGetGitRepository.mockReturnValue(null);
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(mockDiff).not.toHaveBeenCalled();
         });
 
         it('shows error and returns when diff rejects', async () => {
             mockDiff.mockRejectedValue(new Error('fatal: not a git repo'));
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
                 expect.stringContaining('fatal: not a git repo')
             );
@@ -91,7 +95,7 @@ describe('generateCommitMessage', () => {
 
         it('shows warning when diff is empty', async () => {
             mockDiff.mockResolvedValue('');
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
                 expect.stringContaining('No staged changes')
             );
@@ -99,7 +103,7 @@ describe('generateCommitMessage', () => {
 
         it('shows warning when diff is whitespace only', async () => {
             mockDiff.mockResolvedValue('  \n  ');
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
                 expect.stringContaining('No staged changes')
             );
@@ -108,17 +112,17 @@ describe('generateCommitMessage', () => {
 
     describe('VSCode git API usage', () => {
         it('calls repo.diff(true) to get the staged diff', async () => {
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(mockDiff).toHaveBeenCalledWith(true);
         });
 
         it('calls repo.log({ maxEntries: 5 }) for recent commits', async () => {
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(mockLog).toHaveBeenCalledWith({ maxEntries: 5 });
         });
 
         it('formats commit log via formatCommitLog', async () => {
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(mockFormatCommitLog).toHaveBeenCalledWith(
                 expect.arrayContaining([
                     expect.objectContaining({ hash: 'abc1234567890' }),
@@ -127,37 +131,67 @@ describe('generateCommitMessage', () => {
         });
     });
 
+    describe('provider factory', () => {
+        it('creates provider with repoRoot', async () => {
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockProviderFactory).toHaveBeenCalledWith('/repo');
+        });
+
+        it('passes instruction, context, token, and model to provider', async () => {
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockGenerateMessage).toHaveBeenCalledWith(
+                'instruction',
+                'context',
+                expect.objectContaining({ isCancellationRequested: false }),
+                { model: 'sonnet' }
+            );
+        });
+
+        it('passes correct model to provider', async () => {
+            mockGetSettings.mockReturnValue({
+                model: 'opus',
+                includeFileContext: true,
+            });
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockGenerateMessage).toHaveBeenCalledWith(
+                expect.any(String),
+                expect.any(String),
+                expect.anything(),
+                { model: 'opus' }
+            );
+        });
+    });
+
     describe('error resilience', () => {
         it('ignores repo.log failure', async () => {
             mockLog.mockRejectedValue(new Error('no commits'));
-            await generateCommitMessage();
-            expect(mockRunClaude).toHaveBeenCalled();
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockGenerateMessage).toHaveBeenCalled();
             expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
     });
 
     describe('output handling', () => {
         it('sets inputBox.value on successful generation', async () => {
-            mockRunClaude.mockResolvedValue('fix: correct null check');
-            await generateCommitMessage();
+            await generateCommitMessage(mockProviderFactory);
             expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
 
         it('strips code fences from result', async () => {
-            mockRunClaude.mockResolvedValue('```\nfix: correct null check\n```');
-            await generateCommitMessage();
+            mockGenerateMessage.mockResolvedValue('```\nfix: correct null check\n```');
+            await generateCommitMessage(mockProviderFactory);
             expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
 
         it('strips code fences with language tag', async () => {
-            mockRunClaude.mockResolvedValue('```text\nfix: correct null check\n```');
-            await generateCommitMessage();
+            mockGenerateMessage.mockResolvedValue('```text\nfix: correct null check\n```');
+            await generateCommitMessage(mockProviderFactory);
             expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
 
         it('shows warning on empty response', async () => {
-            mockRunClaude.mockResolvedValue('   ');
-            await generateCommitMessage();
+            mockGenerateMessage.mockResolvedValue('   ');
+            await generateCommitMessage(mockProviderFactory);
             expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
                 expect.stringContaining('empty response')
             );
@@ -165,16 +199,21 @@ describe('generateCommitMessage', () => {
         });
 
         it('does not set inputBox when result is undefined', async () => {
-            mockRunClaude.mockResolvedValue(undefined);
-            await generateCommitMessage();
+            mockGenerateMessage.mockResolvedValue(undefined);
+            await generateCommitMessage(mockProviderFactory);
             expect(mockRepo.inputBox.value).toBe('');
         });
     });
 
     describe('commit generation', () => {
-        it('passes includeFileContext to buildInstruction', async () => {
-            await generateCommitMessage();
-            expect(mockBuildInstruction).toHaveBeenCalledWith(true);
+        it('passes includeFileContext and canReadFiles to buildInstruction', async () => {
+            await generateCommitMessage(mockProviderFactory, true);
+            expect(mockBuildInstruction).toHaveBeenCalledWith(true, true);
+        });
+
+        it('passes canReadFiles=false when specified', async () => {
+            await generateCommitMessage(mockProviderFactory, false);
+            expect(mockBuildInstruction).toHaveBeenCalledWith(true, false);
         });
 
         it('passes includeFileContext=false to buildInstruction when disabled', async () => {
@@ -182,23 +221,8 @@ describe('generateCommitMessage', () => {
                 model: 'sonnet',
                 includeFileContext: false,
             });
-            await generateCommitMessage();
-            expect(mockBuildInstruction).toHaveBeenCalledWith(false);
-        });
-
-        it('passes correct model to runClaude', async () => {
-            mockGetSettings.mockReturnValue({
-                model: 'opus',
-                includeFileContext: true,
-            });
-            await generateCommitMessage();
-            expect(mockRunClaude).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.any(String),
-                '/repo',
-                expect.anything(),
-                { model: 'opus' }
-            );
+            await generateCommitMessage(mockProviderFactory, true);
+            expect(mockBuildInstruction).toHaveBeenCalledWith(false, true);
         });
     });
 });
