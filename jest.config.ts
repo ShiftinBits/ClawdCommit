@@ -18,6 +18,7 @@ const config: Config = {
         'src/**/*.ts',
         '!src/types/**',
         '!src/extension.ts',
+        '!src/extension.web.ts',
         '!src/__mocks__/**',
         '!src/__tests__/**',
     ],

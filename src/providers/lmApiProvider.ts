@@ -1,3 +1,4 @@
+/// <reference lib="webworker" />
 import * as vscode from 'vscode';
 import type { CommitMessageProvider } from './types';
 
