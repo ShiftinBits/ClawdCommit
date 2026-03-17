@@ -1,5 +1,5 @@
 /** Build the instruction for commit message generation. */
-export function buildInstruction(includeFileContext: boolean): string {
+export function buildInstruction(includeFileContext: boolean, canReadFiles: boolean = true): string {
     const parts = [
         'Generate a concise git commit message for the staged changes provided via stdin.',
         'Follow conventional commit style if the recent commit history uses it, otherwise match the existing style.',
@@ -9,7 +9,7 @@ export function buildInstruction(includeFileContext: boolean): string {
         'If the changes warrant a body, add it after a blank line.',
     ];
 
-    if (includeFileContext) {
+    if (includeFileContext && canReadFiles) {
         parts.push(
             'You are encouraged to read relevant files in the working directory to better understand the context of the changes.',
         );

@@ -25,6 +25,16 @@ describe('buildInstruction', () => {
         const result = buildInstruction(false);
         expect(result).not.toContain('read files');
     });
+
+    it('omits file exploration guidance when canReadFiles is false even if includeFileContext is true', () => {
+        const result = buildInstruction(true, false);
+        expect(result).not.toContain('read relevant files');
+    });
+
+    it('includes file exploration guidance when both includeFileContext and canReadFiles are true', () => {
+        const result = buildInstruction(true, true);
+        expect(result).toContain('read relevant files');
+    });
 });
 
 describe('buildContext', () => {
