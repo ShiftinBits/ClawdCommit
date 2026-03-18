@@ -232,4 +232,47 @@ describe('CliProvider', () => {
             expect(disposable.dispose).toHaveBeenCalled();
         });
     });
+
+    describe('timeout', () => {
+        beforeEach(() => {
+            jest.useFakeTimers();
+        });
+
+        afterEach(() => {
+            jest.useRealTimers();
+        });
+
+        it('kills process and shows error after timeout', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+
+            // Advance past the 2-minute timeout (async version flushes microtasks)
+            await jest.advanceTimersByTimeAsync(120_000);
+
+            const result = await promise;
+            expect(result).toBeUndefined();
+            expect(mockProcess.kill).toHaveBeenCalledWith('SIGTERM');
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                expect.stringContaining('timed out')
+            );
+        });
+
+        it('clears timeout on successful completion', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            mockProcess.emitStdout('result');
+            mockProcess.emitClose(0);
+
+            const result = await promise;
+            expect(result).toBe('result');
+
+            // Advancing timers after completion should not trigger timeout
+            jest.advanceTimersByTime(120_000);
+            expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+        });
+    });
 });
