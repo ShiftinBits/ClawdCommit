@@ -8,7 +8,7 @@ export async function generateCommitMessage(
     createProvider: ProviderFactory,
     canReadFiles: boolean = true
 ): Promise<void> {
-    const repo = getGitRepository();
+    const repo = await getGitRepository();
     if (!repo) {
         return;
     }

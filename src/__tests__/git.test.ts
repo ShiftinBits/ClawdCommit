@@ -2,10 +2,10 @@ import { getGitRepository, formatCommitLog } from '../git';
 import * as vscode from 'vscode';
 
 describe('getGitRepository', () => {
-    it('returns null and shows error when git extension not found', () => {
+    it('returns null and shows error when git extension not found', async () => {
         (vscode.extensions.getExtension as jest.Mock).mockReturnValue(undefined);
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
@@ -13,26 +13,34 @@ describe('getGitRepository', () => {
         );
     });
 
-    it('returns null and shows error when git extension is not active', () => {
-        (vscode.extensions.getExtension as jest.Mock).mockReturnValue({
+    it('activates the git extension if it is not active and proceeds', async () => {
+        const mockRepo = { rootUri: { fsPath: '/repo' }, inputBox: { value: '' } };
+        const activateMock = jest.fn().mockResolvedValue(undefined);
+        const mockExtension = {
             isActive: false,
+            activate: activateMock,
+            exports: { getAPI: () => ({ repositories: [mockRepo] }) },
+        };
+
+        activateMock.mockImplementation(async () => {
+            mockExtension.isActive = true;
         });
 
-        const result = getGitRepository();
+        (vscode.extensions.getExtension as jest.Mock).mockReturnValue(mockExtension);
 
-        expect(result).toBeNull();
-        expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-            'Git extension is not active.'
-        );
+        const result = await getGitRepository();
+
+        expect(activateMock).toHaveBeenCalled();
+        expect(result).toBe(mockRepo);
     });
 
-    it('returns null and shows error when no repositories', () => {
+    it('returns null and shows error when no repositories', async () => {
         (vscode.extensions.getExtension as jest.Mock).mockReturnValue({
             isActive: true,
             exports: { getAPI: () => ({ repositories: [] }) },
         });
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBeNull();
         expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
@@ -40,19 +48,19 @@ describe('getGitRepository', () => {
         );
     });
 
-    it('returns the single repository when exactly one exists', () => {
+    it('returns the single repository when exactly one exists', async () => {
         const mockRepo = { rootUri: { fsPath: '/repo' }, inputBox: { value: '' } };
         (vscode.extensions.getExtension as jest.Mock).mockReturnValue({
             isActive: true,
             exports: { getAPI: () => ({ repositories: [mockRepo] }) },
         });
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBe(mockRepo);
     });
 
-    it('returns matched repo for active editor URI in multi-root', () => {
+    it('returns matched repo for active editor URI in multi-root', async () => {
         const mockRepo1 = { rootUri: { fsPath: '/repo1' }, inputBox: { value: '' } };
         const mockRepo2 = { rootUri: { fsPath: '/repo2' }, inputBox: { value: '' } };
         const mockGetRepository = jest.fn();
@@ -67,13 +75,13 @@ describe('getGitRepository', () => {
 
         mockGetRepository.mockReturnValue(mockRepo2);
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBe(mockRepo2);
         expect(mockGetRepository).toHaveBeenCalled();
     });
 
-    it('returns first repo when active editor does not match any repository', () => {
+    it('returns first repo when active editor does not match any repository', async () => {
         const mockRepo1 = { rootUri: { fsPath: '/repo1' }, inputBox: { value: '' } };
         const mockRepo2 = { rootUri: { fsPath: '/repo2' }, inputBox: { value: '' } };
         const mockGetRepository = jest.fn();
@@ -88,12 +96,12 @@ describe('getGitRepository', () => {
 
         mockGetRepository.mockReturnValue(null);
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBe(mockRepo1);
     });
 
-    it('returns first repo when no active editor', () => {
+    it('returns first repo when no active editor', async () => {
         const mockRepo1 = { rootUri: { fsPath: '/repo1' }, inputBox: { value: '' } };
         const mockRepo2 = { rootUri: { fsPath: '/repo2' }, inputBox: { value: '' } };
         (vscode.extensions.getExtension as jest.Mock).mockReturnValue({
@@ -103,7 +111,7 @@ describe('getGitRepository', () => {
 
         vscode.window.activeTextEditor = undefined;
 
-        const result = getGitRepository();
+        const result = await getGitRepository();
 
         expect(result).toBe(mockRepo1);
     });

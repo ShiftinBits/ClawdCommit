@@ -10,7 +10,7 @@ import type { API, GitExtension, Repository } from './types/git';
  * 3. If multiple, try to match the active editor's file
  * 4. Fall back to the first repository
  */
-export function getGitRepository(): Repository | null {
+export async function getGitRepository(): Promise<Repository | null> {
     const gitExtension =
         vscode.extensions.getExtension<GitExtension>('vscode.git');
 
@@ -22,10 +22,7 @@ export function getGitRepository(): Repository | null {
     }
 
     if (!gitExtension.isActive) {
-        vscode.window.showErrorMessage(
-            'Git extension is not active.'
-        );
-        return null;
+        await gitExtension.activate();
     }
 
     const api: API = gitExtension.exports.getAPI(1);

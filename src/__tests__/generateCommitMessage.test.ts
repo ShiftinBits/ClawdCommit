@@ -51,7 +51,7 @@ beforeEach(() => {
         log: mockLog,
     };
 
-    mockGetGitRepository.mockReturnValue(mockRepo as any);
+    mockGetGitRepository.mockResolvedValue(mockRepo as any);
     mockFormatCommitLog.mockReturnValue('abc1234 previous commit');
     mockGetSettings.mockReturnValue({
         model: 'sonnet',
@@ -79,7 +79,7 @@ beforeEach(() => {
 describe('generateCommitMessage', () => {
     describe('early exits', () => {
         it('returns early when getGitRepository returns null', async () => {
-            mockGetGitRepository.mockReturnValue(null);
+            mockGetGitRepository.mockResolvedValue(null);
             await generateCommitMessage(mockProviderFactory);
             expect(mockDiff).not.toHaveBeenCalled();
         });
