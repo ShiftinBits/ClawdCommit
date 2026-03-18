@@ -1,11 +1,13 @@
 import * as vscode from 'vscode';
 
+export type ClaudeModel = 'haiku' | 'sonnet' | 'opus';
+
 export interface CommitMessageProvider {
     generateMessage(
         instruction: string,
         context: string,
         token: vscode.CancellationToken,
-        options?: { model?: string }
+        options?: { model?: ClaudeModel }
     ): Promise<string | undefined>;
 }
 

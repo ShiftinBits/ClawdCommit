@@ -1,5 +1,6 @@
 import { getSettings } from '../settings';
 import * as vscode from 'vscode';
+import type { ClaudeModel } from '../providers/types';
 
 describe('getSettings', () => {
     it('returns correct default values for all fields', () => {
@@ -44,5 +45,11 @@ describe('getSettings', () => {
 
         expect(mockGet).toHaveBeenCalledWith('model', 'sonnet');
         expect(mockGet).toHaveBeenCalledWith('includeFileContext', true);
+    });
+
+    it('model field satisfies ClaudeModel type', () => {
+        const settings = getSettings();
+        const model: ClaudeModel = settings.model;
+        expect(['haiku', 'sonnet', 'opus']).toContain(model);
     });
 });

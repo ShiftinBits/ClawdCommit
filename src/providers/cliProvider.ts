@@ -1,6 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process';
 import * as vscode from 'vscode';
-import type { CommitMessageProvider } from './types';
+import type { CommitMessageProvider, ClaudeModel } from './types';
 
 export class CliProvider implements CommitMessageProvider {
     constructor(private readonly cwd: string) {}
@@ -9,9 +9,9 @@ export class CliProvider implements CommitMessageProvider {
         instruction: string,
         context: string,
         cancellationToken: vscode.CancellationToken,
-        options?: { model?: string }
+        options?: { model?: ClaudeModel }
     ): Promise<string | undefined> {
-        const model = options?.model ?? 'sonnet';
+        const model: ClaudeModel = options?.model ?? 'sonnet';
 
         return new Promise<string | undefined>((resolve) => {
             if (cancellationToken.isCancellationRequested) {

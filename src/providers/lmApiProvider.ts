@@ -1,13 +1,13 @@
 /// <reference lib="webworker" />
 import * as vscode from 'vscode';
-import type { CommitMessageProvider } from './types';
+import type { CommitMessageProvider, ClaudeModel } from './types';
 
 export class LmApiProvider implements CommitMessageProvider {
     async generateMessage(
         instruction: string,
         context: string,
         token: vscode.CancellationToken,
-        options?: { model?: string }
+        options?: { model?: ClaudeModel }
     ): Promise<string | undefined> {
         const model = await this.selectModel(options?.model);
         if (!model) {
@@ -43,11 +43,11 @@ export class LmApiProvider implements CommitMessageProvider {
         }
     }
 
-    private toFamilyName(model: string): string {
+    private toFamilyName(model: ClaudeModel): string {
         return `claude-${model}`;
     }
 
-    private async selectModel(preferredModel?: string): Promise<vscode.LanguageModelChat | undefined> {
+    private async selectModel(preferredModel?: ClaudeModel): Promise<vscode.LanguageModelChat | undefined> {
         if (preferredModel) {
             const exact = await vscode.lm.selectChatModels({ vendor: 'anthropic', family: this.toFamilyName(preferredModel) });
             if (exact.length > 0) { return exact[0]; }
