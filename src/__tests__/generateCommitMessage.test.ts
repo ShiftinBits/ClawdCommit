@@ -203,6 +203,24 @@ describe('generateCommitMessage', () => {
             await generateCommitMessage(mockProviderFactory);
             expect(mockRepo.inputBox.value).toBe('');
         });
+
+        it('strips code fences with CRLF line endings', async () => {
+            mockGenerateMessage.mockResolvedValue('```\r\nfix: correct null check\r\n```');
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockRepo.inputBox.value).toBe('fix: correct null check');
+        });
+
+        it('strips code fences with trailing whitespace', async () => {
+            mockGenerateMessage.mockResolvedValue('```text\nfix: correct null check\n```  ');
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockRepo.inputBox.value).toBe('fix: correct null check');
+        });
+
+        it('strips code fences with non-word language tag', async () => {
+            mockGenerateMessage.mockResolvedValue('```commit-msg\nfix: correct null check\n```');
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockRepo.inputBox.value).toBe('fix: correct null check');
+        });
     });
 
     describe('commit generation', () => {

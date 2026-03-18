@@ -71,7 +71,7 @@ export async function generateCommitMessage(
 }
 
 function stripCodeFences(text: string): string {
-    const fencePattern = /^```(?:\w*)\n([\s\S]*?)\n```$/;
+    const fencePattern = /^```[^\n\r]*\r?\n([\s\S]*?)\r?\n```\s*$/;
     const match = text.match(fencePattern);
     return match ? match[1].trim() : text;
 }
