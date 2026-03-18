@@ -4,7 +4,7 @@ import { LmApiProvider } from './providers/lmApiProvider';
 import type { ProviderFactory } from './providers/types';
 
 export function activate(context: vscode.ExtensionContext): void {
-    const createProvider: ProviderFactory = () => new LmApiProvider();
+    const createProvider: ProviderFactory = (_repoRoot) => new LmApiProvider();
 
     const disposable = vscode.commands.registerCommand(
         'clawdcommit.generateCommitMessage',
