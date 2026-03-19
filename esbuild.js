@@ -47,7 +47,7 @@ async function main() {
     const webCtx = await esbuild.context({
         ...sharedOptions,
         entryPoints: ['src/extension.web.ts'],
-        format: 'cjs',
+        format: 'esm',
         platform: 'browser',
         outfile: 'dist/web/extension.js',
     });
