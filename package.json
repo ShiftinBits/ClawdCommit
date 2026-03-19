@@ -53,8 +53,9 @@
     "ai",
     "anthropic"
   ],
-  "extensionDependencies": [
-    "vscode.git"
+  "extensionKind": [
+    "workspace",
+    "web"
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/web/extension.js",
