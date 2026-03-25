@@ -11,7 +11,9 @@ tmp/
 
 # Tests
 coverage/
+.vscode-test-web/
 
+# Build
 node_modules/
 dist/
 *.vsix
