@@ -12,6 +12,9 @@ on:
       - "tsconfig.json"
       - "esbuild.js"
       - "jest.config.ts"
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest

@@ -10,6 +10,9 @@ on:
       - ".github/workflows/build.yml"
       - "package.json"
       - "tsconfig.json"
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
