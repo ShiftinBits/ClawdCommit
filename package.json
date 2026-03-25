@@ -54,8 +54,7 @@
     "anthropic"
   ],
   "extensionKind": [
-    "workspace",
-    "web"
+    "workspace"
   ],
   "main": "./dist/extension.js",
   "browser": "./dist/web/extension.js",
