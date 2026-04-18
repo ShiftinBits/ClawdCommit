@@ -6,11 +6,16 @@ import type { API, GitExtension, Repository } from './types/git';
  *
  * Strategy:
  * 1. Get the git extension API
- * 2. If exactly one repository, use it
- * 3. If multiple, try to match the active editor's file
- * 4. Fall back to the first repository
+ * 2. If a target URI is provided (e.g., from an SCM title click), prefer the
+ *    repository whose root matches it — this is what lets multi-repo
+ *    workspaces route the click to the correct sub-repo.
+ * 3. If exactly one repository, use it
+ * 4. If multiple, try to match the active editor's file
+ * 5. Fall back to the first repository
  */
-export async function getGitRepository(): Promise<Repository | null> {
+export async function getGitRepository(
+    targetUri?: vscode.Uri
+): Promise<Repository | null> {
     const gitExtension =
         vscode.extensions.getExtension<GitExtension>('vscode.git');
 
@@ -32,6 +37,19 @@ export async function getGitRepository(): Promise<Repository | null> {
             'No git repository found in workspace.'
         );
         return null;
+    }
+
+    if (targetUri) {
+        const matched = api.getRepository(targetUri);
+        if (matched) {
+            return matched;
+        }
+        const byRoot = api.repositories.find(
+            (r) => r.rootUri.fsPath === targetUri.fsPath
+        );
+        if (byRoot) {
+            return byRoot;
+        }
     }
 
     if (api.repositories.length === 1) {
