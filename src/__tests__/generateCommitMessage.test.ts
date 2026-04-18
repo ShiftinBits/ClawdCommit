@@ -223,6 +223,19 @@ describe('generateCommitMessage', () => {
         });
     });
 
+    describe('multi-repo routing', () => {
+        it('forwards targetUri to getGitRepository', async () => {
+            const targetUri = { fsPath: '/repo2' } as unknown as Parameters<typeof generateCommitMessage>[2];
+            await generateCommitMessage(mockProviderFactory, true, targetUri);
+            expect(mockGetGitRepository).toHaveBeenCalledWith(targetUri);
+        });
+
+        it('passes undefined when no targetUri is provided', async () => {
+            await generateCommitMessage(mockProviderFactory, true);
+            expect(mockGetGitRepository).toHaveBeenCalledWith(undefined);
+        });
+    });
+
     describe('commit generation', () => {
         it('passes includeFileContext and canReadFiles to buildInstruction', async () => {
             await generateCommitMessage(mockProviderFactory, true);

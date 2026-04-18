@@ -6,9 +6,10 @@ import type { ProviderFactory } from './providers/types';
 
 export async function generateCommitMessage(
     createProvider: ProviderFactory,
-    canReadFiles: boolean = true
+    canReadFiles: boolean = true,
+    targetUri?: vscode.Uri
 ): Promise<void> {
-    const repo = await getGitRepository();
+    const repo = await getGitRepository(targetUri);
     if (!repo) {
         return;
     }
