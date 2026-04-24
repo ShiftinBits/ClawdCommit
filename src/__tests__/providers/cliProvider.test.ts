@@ -303,6 +303,25 @@ describe('CliProvider', () => {
             const disposable = token.onCancellationRequested.mock.results[0].value;
             expect(disposable.dispose).toHaveBeenCalled();
         });
+
+        it('swallows stdin errors without rejecting the generation promise', async () => {
+            // Regression guard: if the child exits before we finish writing
+            // to stdin, Node emits EPIPE on stdin. The provider registers a
+            // no-op handler so the unhandled error does not propagate.
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            const err = new Error('EPIPE') as NodeJS.ErrnoException;
+            err.code = 'EPIPE';
+            mockProcess.emitStdinError(err);
+            mockProcess.emitStdout('ok');
+            mockProcess.emitClose(0);
+
+            const result = await promise;
+            expect(result).toBe('ok');
+            expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
+        });
     });
 
     describe('timeout', () => {

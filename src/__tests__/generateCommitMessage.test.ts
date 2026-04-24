@@ -97,6 +97,15 @@ describe('generateCommitMessage', () => {
             expect(mockRepo.inputBox.value).toBe('');
         });
 
+        it('stringifies non-Error rejection reasons from diff', async () => {
+            mockDiff.mockRejectedValue('raw string failure');
+            await generateCommitMessage(mockProviderFactory);
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                'Failed to get staged diff: raw string failure'
+            );
+            expect(mockRepo.inputBox.value).toBe('');
+        });
+
         it('shows warning when diff is empty', async () => {
             mockDiff.mockResolvedValue('');
             await generateCommitMessage(mockProviderFactory);

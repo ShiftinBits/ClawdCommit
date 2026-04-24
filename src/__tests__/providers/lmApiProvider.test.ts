@@ -158,6 +158,42 @@ describe('LmApiProvider', () => {
             );
         });
 
+        it('includes error code in the error message when LanguageModelError has one', async () => {
+            const err = new vscode.LanguageModelError('blocked by filter');
+            (err as vscode.LanguageModelError & { code: string }).code = 'Blocked';
+            const model = createMockModel({
+                sendRequest: jest.fn().mockRejectedValue(err),
+            });
+            mockSelectChatModels.mockResolvedValue([model]);
+
+            const provider = new LmApiProvider();
+            const token = createMockCancellationToken();
+
+            const result = await provider.generateMessage('inst', 'ctx', token);
+
+            expect(result).toBeUndefined();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                'Claude request failed [Blocked]: blocked by filter'
+            );
+        });
+
+        it('stringifies non-Error rejection reasons', async () => {
+            const model = createMockModel({
+                sendRequest: jest.fn().mockRejectedValue('raw string failure'),
+            });
+            mockSelectChatModels.mockResolvedValue([model]);
+
+            const provider = new LmApiProvider();
+            const token = createMockCancellationToken();
+
+            const result = await provider.generateMessage('inst', 'ctx', token);
+
+            expect(result).toBeUndefined();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                'Unexpected error: raw string failure'
+            );
+        });
+
         it('shows generic error for non-LanguageModelError exceptions', async () => {
             const model = createMockModel({
                 sendRequest: jest.fn().mockRejectedValue(new Error('network error')),
