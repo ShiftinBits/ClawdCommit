@@ -2,7 +2,7 @@
 
 All notable changes to ClawdCommit will be documented in this file.
 
-## [1.2.0]
+## [0.5.0] - 2026-04-23
 
 ### Added
 
@@ -24,27 +24,68 @@ All notable changes to ClawdCommit will be documented in this file.
 - Include `LanguageModelError.code` in error notifications for clearer diagnostics.
 - Drop a stray blank line before the recent-commits section in the prompt.
 
-## [1.1.0]
+## [0.4.0] - 2026-03-25
 
 ### Added
 
-- Separate desktop and web entry points, with the web build using the VS Code Language Model API.
+- VS Code for the Web support via the Language Model API (works in vscode.dev, github.dev, and Codespaces).
+- Auto-activation of the built-in Git extension when it is inactive.
 - 2-minute timeout on the Claude CLI invocation to prevent indefinite hangs.
-- Auto-activate the built-in Git extension instead of showing an error when it is inactive.
+- Model fallback in the web provider: exact match, then any Anthropic model, then family-only match.
+
+### Changed
+
+- Use the built-in VSCode Git extension API instead of shelling out to `git`.
+- Exclude tests, CI workflows, and docs from the packaged `.vsix`.
 
 ### Fixed
 
-- Handle CRLF, trailing whitespace, and non-word language tags when stripping code fences from model output.
-- Remove hard `extensionDependency` on `vscode.git` so the web build can activate.
-- Remove invalid `web` value from `extensionKind` that blocked `vsce publish`.
+- Strip code fences wrapped in CRLF line endings, trailing whitespace, or non-word language tags.
+- Removed the hard `extensionDependency` on `vscode.git` that prevented web activation.
+- Non-Claude API errors now surface distinct messages instead of being swallowed.
 
-## [1.0.0]
+## [0.3.1] - 2026-02-11
+
+### Changed
+
+- Single-call architecture for all commits, replacing the map-reduce pipeline.
+- Consolidated `analysisModel`, `synthesisModel`, and `singleCallModel` into one `clawdCommit.model` setting (default: `sonnet`).
+- `includeFileContext` now lets Claude choose which files to read rather than inlining full file contents.
+
+### Removed
+
+- `parallelFileThreshold` and `maxConcurrentAgents` settings.
+
+## [0.3.0] - 2026-02-10
 
 ### Added
 
-- Generate git commit messages using Claude via the Source Control pane
-- Support for Claude Code CLI (desktop) and VS Code Language Model API (web)
-- Model selection: haiku, sonnet (default), opus
-- Optional file context reading for richer commit messages
-- Multi-root workspace support with active editor matching
-- Keyboard shortcut: `Ctrl+Shift+Alt+C` / `Cmd+Shift+Alt+C`
+- Keyboard shortcut: `Ctrl+Shift+Alt+C` (macOS: `Cmd+Shift+Alt+C`) to generate a commit message from the keyboard when a Git SCM view is active.
+
+### Changed
+
+- Fetch the staged diff and recent commit log concurrently via `Promise.allSettled`.
+- Buffer-based stdout/stderr collection with a single concatenation on close.
+- Increased subprocess `maxBuffer` for git commands (10 MB) and staged file content (512 KB).
+- Cancellation now propagates through git operations and the pipeline via `AbortSignal`.
+- Cleaner notification text — removed the redundant `ClawdCommit:` prefix and trailing ellipses.
+
+## [0.2.0] - 2026-02-09
+
+### Added
+
+- Parallel agent architecture (map-reduce) for multi-file commits, producing better messages on large diffs.
+
+## [0.1.1] - 2026-02-08
+
+### Changed
+
+- Default model is now explicitly `sonnet`.
+
+## [0.1.0] - 2026-02-08
+
+### Added
+
+- Initial release: generate commit messages from the Source Control title bar using the Claude Code CLI.
+- Style-aware output that matches the project's recent commit history.
+- Cancellable generation via the progress notification.
