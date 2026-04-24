@@ -2,7 +2,7 @@
   "name": "clawdcommit",
   "displayName": "ClawdCommit",
   "description": "AI-powered git commit messages in the Source Control pane — analyzes staged changes using Claude Code CLI",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "publisher": "ShiftinBits",
   "license": "MIT",
   "repository": "https://github.com/shiftinbits/clawdcommit",
