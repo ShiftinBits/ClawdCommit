@@ -16,6 +16,7 @@ export interface Repository {
     readonly rootUri: Uri;
     readonly inputBox: InputBox;
     readonly state: RepositoryState;
+    status(): Promise<void>;
     diff(cached?: boolean): Promise<string>;
     log(options?: LogOptions): Promise<Commit[]>;
     show(ref: string, path: string): Promise<string>;

@@ -23,10 +23,12 @@ const mockWithProgress = vscode.window.withProgress as jest.Mock;
 
 let mockDiff: jest.Mock;
 let mockLog: jest.Mock;
+let mockStatus: jest.Mock;
 let mockRepo: {
     rootUri: { fsPath: string };
     inputBox: { value: string };
     state: { indexChanges: unknown[] };
+    status: jest.Mock;
     diff: jest.Mock;
     log: jest.Mock;
 };
@@ -43,10 +45,12 @@ beforeEach(() => {
     mockLog = jest.fn().mockResolvedValue([
         { hash: 'abc1234567890', message: 'previous commit' },
     ]);
+    mockStatus = jest.fn().mockResolvedValue(undefined);
     mockRepo = {
         rootUri: { fsPath: '/repo' },
         inputBox: { value: '' },
         state: { indexChanges: [] },
+        status: mockStatus,
         diff: mockDiff,
         log: mockLog,
     };
@@ -128,6 +132,39 @@ describe('generateCommitMessage', () => {
                     expect.objectContaining({ hash: 'abc1234567890' }),
                 ])
             );
+        });
+
+        it('refreshes repo state via status() before reading diff', async () => {
+            // Regression guard: VSCode's Git extension caches state and can
+            // miss changes staged via terminal/Source Control pane until a
+            // refresh is forced. status() must be awaited before diff() so
+            // subsequent diff calls see current staged changes.
+            const callOrder: string[] = [];
+            mockStatus.mockImplementation(async () => {
+                callOrder.push('status');
+            });
+            mockDiff.mockImplementation(async () => {
+                callOrder.push('diff');
+                return 'diff --git a/f.ts b/f.ts\n+line';
+            });
+
+            await generateCommitMessage(mockProviderFactory);
+
+            expect(mockStatus).toHaveBeenCalled();
+            expect(callOrder[0]).toBe('status');
+            expect(callOrder).toContain('diff');
+            expect(callOrder.indexOf('status')).toBeLessThan(
+                callOrder.indexOf('diff')
+            );
+        });
+
+        it('still generates a commit message when status() fails', async () => {
+            // Non-fatal: a failed refresh should not block generation; the
+            // diff call may still succeed against current state.
+            mockStatus.mockRejectedValue(new Error('refresh failed'));
+            await generateCommitMessage(mockProviderFactory);
+            expect(mockDiff).toHaveBeenCalledWith(true);
+            expect(mockRepo.inputBox.value).toBe('fix: correct null check');
         });
     });
 

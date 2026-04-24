@@ -16,6 +16,16 @@ export async function generateCommitMessage(
     const repoRoot = repo.rootUri.fsPath;
     const settings = getSettings();
 
+    // Force the VSCode Git extension to refresh its internal state before
+    // reading the diff. Without this, changes staged via the terminal or
+    // Source Control pane may not be visible to repo.diff() until another
+    // operation (e.g. opening a diff preview) triggers a refresh.
+    try {
+        await repo.status();
+    } catch {
+        // Non-fatal: fall through and attempt the diff with current state.
+    }
+
     const [diffResult, logResult] = await Promise.allSettled([
         repo.diff(true),
         repo.log({ maxEntries: 5 }),
