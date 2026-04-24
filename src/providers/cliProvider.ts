@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process';
 import * as vscode from 'vscode';
+import { buildSystemPrompt } from '../prompts';
 import type { CommitMessageProvider, ClaudeModel } from './types';
 
 const TIMEOUT_MS = 120_000;
@@ -21,10 +22,18 @@ export class CliProvider implements CommitMessageProvider {
                 return;
             }
 
-            const child: ChildProcess = spawn('claude', ['-p', instruction, '--model', model], {
-                cwd: this.cwd,
-                stdio: ['pipe', 'pipe', 'pipe'],
-            });
+            const child: ChildProcess = spawn(
+                'claude',
+                [
+                    '-p', instruction,
+                    '--model', model,
+                    '--system-prompt', buildSystemPrompt(),
+                ],
+                {
+                    cwd: this.cwd,
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                }
+            );
 
             const stdoutChunks: Buffer[] = [];
             const stderrChunks: Buffer[] = [];

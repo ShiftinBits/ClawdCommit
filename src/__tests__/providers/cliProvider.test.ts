@@ -78,7 +78,11 @@ describe('CliProvider', () => {
 
             expect(mockSpawn).toHaveBeenCalledWith(
                 'claude',
-                ['-p', 'my instruction', '--model', 'sonnet'],
+                [
+                    '-p', 'my instruction',
+                    '--model', 'sonnet',
+                    '--system-prompt', expect.any(String),
+                ],
                 {
                     cwd: '/my/cwd',
                     stdio: ['pipe', 'pipe', 'pipe'],
@@ -111,9 +115,29 @@ describe('CliProvider', () => {
 
             expect(mockSpawn).toHaveBeenCalledWith(
                 'claude',
-                ['-p', 'inst', '--model', 'opus'],
+                [
+                    '-p', 'inst',
+                    '--model', 'opus',
+                    '--system-prompt', expect.any(String),
+                ],
                 expect.any(Object)
             );
+        });
+
+        it('passes a non-empty --system-prompt flag', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            mockProcess.emitClose(0);
+            await promise;
+
+            const args = mockSpawn.mock.calls[0][1] as string[];
+            const flagIndex = args.indexOf('--system-prompt');
+            expect(flagIndex).toBeGreaterThanOrEqual(0);
+            const value = args[flagIndex + 1];
+            expect(typeof value).toBe('string');
+            expect(value.length).toBeGreaterThan(0);
         });
     });
 

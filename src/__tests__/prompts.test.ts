@@ -1,7 +1,49 @@
 import {
     buildInstruction,
     buildContext,
+    buildSystemPrompt,
 } from '../prompts';
+
+describe('buildSystemPrompt', () => {
+    it('returns a non-empty string', () => {
+        const result = buildSystemPrompt();
+        expect(typeof result).toBe('string');
+        expect(result.length).toBeGreaterThan(0);
+    });
+
+    it('establishes the commit-author role', () => {
+        const result = buildSystemPrompt();
+        expect(result.toLowerCase()).toContain('commit message');
+    });
+
+    it('forbids markdown/code fences and preamble', () => {
+        const result = buildSystemPrompt();
+        expect(result).toContain('ONLY the commit message');
+        expect(result.toLowerCase()).toContain('no markdown');
+        expect(result.toLowerCase()).toContain('no code fences');
+    });
+
+    it('enforces the 72-character subject rule', () => {
+        const result = buildSystemPrompt();
+        expect(result).toContain('72');
+    });
+
+    it('mentions Conventional Commits as a conditional style', () => {
+        const result = buildSystemPrompt();
+        expect(result).toContain('Conventional Commits');
+    });
+
+    it('instructs the model not to ask clarifying questions', () => {
+        const result = buildSystemPrompt();
+        expect(result.toLowerCase()).toContain('never ask');
+    });
+
+    it('stays lean (short enough to be CLI-arg friendly)', () => {
+        const result = buildSystemPrompt();
+        // Sanity check: meaningfully shorter than Claude Code's default agentic prompt.
+        expect(result.length).toBeLessThan(2000);
+    });
+});
 
 describe('buildInstruction', () => {
     it('returns a non-empty string', () => {
