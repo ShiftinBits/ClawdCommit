@@ -33,10 +33,11 @@ export class LmApiProvider implements CommitMessageProvider {
             }
             return chunks.join('');
         } catch (err) {
-            const message = err instanceof Error ? err.message : String(err);
             if (err instanceof vscode.LanguageModelError) {
-                vscode.window.showErrorMessage(`Claude request failed: ${message}`);
+                const suffix = err.code ? ` [${err.code}]` : '';
+                vscode.window.showErrorMessage(`Claude request failed${suffix}: ${err.message}`);
             } else {
+                const message = err instanceof Error ? err.message : String(err);
                 vscode.window.showErrorMessage(`Unexpected error: ${message}`);
             }
             return undefined;
@@ -54,7 +55,14 @@ export class LmApiProvider implements CommitMessageProvider {
         }
 
         const anyAnthropic = await vscode.lm.selectChatModels({ vendor: 'anthropic' });
-        if (anyAnthropic.length > 0) { return anyAnthropic[0]; }
+        if (anyAnthropic.length > 0) {
+            if (preferredModel && !anyAnthropic[0].family.startsWith(this.toFamilyName(preferredModel))) {
+                vscode.window.showWarningMessage(
+                    `Configured Claude model "${preferredModel}" is not available. Using "${anyAnthropic[0].family}" instead.`
+                );
+            }
+            return anyAnthropic[0];
+        }
 
         if (preferredModel) {
             const byFamily = await vscode.lm.selectChatModels({ family: this.toFamilyName(preferredModel) });

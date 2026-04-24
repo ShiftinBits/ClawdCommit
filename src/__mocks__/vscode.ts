@@ -4,6 +4,22 @@ const workspace = {
     }),
 };
 
+function createDefaultProgressToken() {
+    const listeners: Array<() => void> = [];
+    const token = {
+        isCancellationRequested: false,
+        onCancellationRequested: jest.fn((listener: () => void) => {
+            listeners.push(listener);
+            return { dispose: jest.fn() };
+        }),
+        cancel() {
+            token.isCancellationRequested = true;
+            listeners.forEach((fn) => fn());
+        },
+    };
+    return token;
+}
+
 const window = {
     showErrorMessage: jest.fn(),
     showWarningMessage: jest.fn(),
@@ -17,11 +33,7 @@ const window = {
             ) => Promise<unknown>
         ) => {
             const progress = { report: jest.fn() };
-            const token = {
-                isCancellationRequested: false,
-                onCancellationRequested: jest.fn(() => ({ dispose: jest.fn() })),
-            };
-            return task(progress, token);
+            return task(progress, createDefaultProgressToken());
         }
     ),
     activeTextEditor: undefined as { document: { uri: { fsPath: string } } } | undefined,

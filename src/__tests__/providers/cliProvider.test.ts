@@ -124,6 +124,25 @@ describe('CliProvider', () => {
             );
         });
 
+        it('falls back to sonnet when an invalid model is supplied (argument validation)', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            // Intentionally bypass the type system: workspace settings can
+            // deliver arbitrary strings.
+            const promise = provider.generateMessage(
+                'inst', 'ctx', token, { model: 'evil --flag' as unknown as 'sonnet' }
+            );
+            mockProcess.emitClose(0);
+            await promise;
+
+            expect(mockSpawn).toHaveBeenCalledWith(
+                'claude',
+                expect.arrayContaining(['--model', 'sonnet']),
+                expect.any(Object)
+            );
+        });
+
         it('passes a non-empty --system-prompt flag', async () => {
             const provider = new CliProvider('/cwd');
             const token = createMockCancellationToken();
@@ -153,7 +172,7 @@ describe('CliProvider', () => {
             const result = await promise;
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'something went wrong'
+                'Claude CLI failed: something went wrong'
             );
         });
 
@@ -167,8 +186,37 @@ describe('CliProvider', () => {
             const result = await promise;
             expect(result).toBeUndefined();
             expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
-                'Process exited with code 1'
+                'Claude CLI failed: Process exited with code 1'
             );
+        });
+
+        it('truncates very long stderr to keep the error popup readable', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const huge = 'x'.repeat(2000);
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            mockProcess.emitStderr(huge);
+            mockProcess.emitClose(1);
+
+            const result = await promise;
+            expect(result).toBeUndefined();
+            const shown = (vscode.window.showErrorMessage as jest.Mock).mock.calls[0][0] as string;
+            expect(shown.length).toBeLessThan(huge.length);
+            expect(shown.endsWith('…')).toBe(true);
+        });
+
+        it('treats null exit code (process killed) as non-success and does not show error if cancelled', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            token.cancel();
+            mockProcess.emitClose(null);
+
+            const result = await promise;
+            expect(result).toBeUndefined();
+            expect(vscode.window.showErrorMessage).not.toHaveBeenCalled();
         });
     });
 

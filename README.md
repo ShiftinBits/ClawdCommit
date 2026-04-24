@@ -16,7 +16,7 @@ Stage your changes, click the button in the source control panel "Changes" bar, 
 
 ## Prerequisites
 
-- [VS Code](https://code.visualstudio.com/) 1.85+
+- [VS Code](https://code.visualstudio.com/) 1.109+
 - [Claude Code CLI](https://docs.anthropic.com/en/docs/claude-code) installed and available on your `PATH`
 - A git repository open in VS Code
 

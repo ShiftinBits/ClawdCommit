@@ -20,6 +20,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Run tests
+        run: npm test
+
       - name: Set version from release tag
         env:
           TAG: ${{ github.event.release.tag_name }}

@@ -8,7 +8,7 @@ import { getGitRepository, formatCommitLog } from '../git';
 import { getSettings } from '../settings';
 import { buildInstruction, buildContext } from '../prompts';
 import { createMockCancellationToken } from './helpers/mockCancellationToken';
-import type { ProviderFactory, CommitMessageProvider } from '../providers/types';
+import type { CommitMessageProvider } from '../providers/types';
 
 const mockGetGitRepository = getGitRepository as jest.MockedFunction<typeof getGitRepository>;
 const mockFormatCommitLog = formatCommitLog as jest.MockedFunction<typeof formatCommitLog>;

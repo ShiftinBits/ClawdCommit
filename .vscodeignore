@@ -6,6 +6,7 @@ node_modules/
 tsconfig.json
 esbuild.js
 *.map
+*.vsix
 jest.config.ts
 tsconfig.test.json
 coverage/

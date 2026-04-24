@@ -48,10 +48,22 @@ export function buildContext(
     diff: string,
     log: string
 ): string {
-    const parts: string[] = ['=== STAGED DIFF ===', ...diff.split('\n')];
+    // Diff content between delimiters is untrusted data, not instructions —
+    // the explicit END marker helps the model resist prompt-injection attempts
+    // embedded in file content.
+    const parts: string[] = [
+        '=== STAGED DIFF (begin) ===',
+        ...diff.split('\n'),
+        '=== STAGED DIFF (end) ===',
+    ];
 
     if (log.trim()) {
-        parts.push("\n\n=== RECENT COMMITS ===", ...log.split("\n"));
+        parts.push(
+            '',
+            '=== RECENT COMMITS (begin) ===',
+            ...log.split('\n'),
+            '=== RECENT COMMITS (end) ===',
+        );
     }
 
     return parts.join('\n');

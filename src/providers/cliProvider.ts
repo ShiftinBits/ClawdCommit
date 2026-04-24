@@ -4,6 +4,8 @@ import { buildSystemPrompt } from '../prompts';
 import type { CommitMessageProvider, ClaudeModel } from './types';
 
 const TIMEOUT_MS = 120_000;
+const STDERR_MAX_DISPLAY = 500;
+const ALLOWED_MODELS: ReadonlySet<ClaudeModel> = new Set(['haiku', 'sonnet', 'opus']);
 
 export class CliProvider implements CommitMessageProvider {
     constructor(private readonly cwd: string) {}
@@ -14,7 +16,8 @@ export class CliProvider implements CommitMessageProvider {
         cancellationToken: vscode.CancellationToken,
         options?: { model?: ClaudeModel }
     ): Promise<string | undefined> {
-        const model: ClaudeModel = options?.model ?? 'sonnet';
+        const requested = options?.model ?? 'sonnet';
+        const model: ClaudeModel = ALLOWED_MODELS.has(requested) ? requested : 'sonnet';
 
         return new Promise<string | undefined>((resolve) => {
             if (cancellationToken.isCancellationRequested) {
@@ -42,6 +45,8 @@ export class CliProvider implements CommitMessageProvider {
             const settle = (value: string | undefined) => {
                 if (!settled) {
                     settled = true;
+                    cancelListener.dispose();
+                    clearTimeout(timer);
                     resolve(value);
                 }
             };
@@ -55,7 +60,6 @@ export class CliProvider implements CommitMessageProvider {
             }, TIMEOUT_MS);
 
             const cancelListener = cancellationToken.onCancellationRequested(() => {
-                clearTimeout(timer);
                 child.kill('SIGTERM');
                 settle(undefined);
             });
@@ -68,9 +72,11 @@ export class CliProvider implements CommitMessageProvider {
                 stderrChunks.push(chunk);
             });
 
+            // Swallow stdin stream errors (e.g. EPIPE if process exits before
+            // we finish writing). The 'close' / 'error' handlers cover outcome.
+            child.stdin?.on('error', () => {});
+
             child.on('close', (code) => {
-                clearTimeout(timer);
-                cancelListener.dispose();
                 const stdout = Buffer.concat(stdoutChunks).toString();
                 const stderr = Buffer.concat(stderrChunks).toString();
 
@@ -80,8 +86,11 @@ export class CliProvider implements CommitMessageProvider {
                 }
 
                 if (code !== 0) {
-                    const msg = stderr.trim() || `Process exited with code ${code}`;
-                    vscode.window.showErrorMessage(msg);
+                    const raw = stderr.trim() || `Process exited with code ${code}`;
+                    const msg = raw.length > STDERR_MAX_DISPLAY
+                        ? `${raw.slice(0, STDERR_MAX_DISPLAY)}…`
+                        : raw;
+                    vscode.window.showErrorMessage(`Claude CLI failed: ${msg}`);
                     settle(undefined);
                     return;
                 }
@@ -90,9 +99,6 @@ export class CliProvider implements CommitMessageProvider {
             });
 
             child.on('error', (err: NodeJS.ErrnoException) => {
-                clearTimeout(timer);
-                cancelListener.dispose();
-
                 if (err.code === 'ENOENT') {
                     vscode.window.showErrorMessage(
                         '"claude" CLI not found. Install Claude Code and ensure it is in your PATH.'

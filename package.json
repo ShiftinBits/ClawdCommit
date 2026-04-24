@@ -56,6 +56,13 @@
   "extensionKind": [
     "workspace"
   ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "ClawdCommit executes the Claude Code CLI and reads workspace files to generate commit messages."
+    },
+    "virtualWorkspaces": false
+  },
   "main": "./dist/extension.js",
   "browser": "./dist/web/extension.js",
   "contributes": {

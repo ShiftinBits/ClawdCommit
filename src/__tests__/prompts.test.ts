@@ -80,22 +80,35 @@ describe('buildInstruction', () => {
 });
 
 describe('buildContext', () => {
-    it('includes the staged diff section', () => {
+    it('includes the staged diff section with begin/end delimiters', () => {
         const diff = '@@ -1,3 +1,4 @@\n+new line';
         const result = buildContext(diff, '');
-        expect(result).toContain('=== STAGED DIFF ===');
+        expect(result).toContain('=== STAGED DIFF (begin) ===');
+        expect(result).toContain('=== STAGED DIFF (end) ===');
         expect(result).toContain(diff);
     });
 
-    it('includes recent commits section when log is non-empty', () => {
+    it('includes recent commits section with begin/end delimiters when log is non-empty', () => {
         const log = 'def5678 feat: add search feature';
         const result = buildContext('diff', log);
-        expect(result).toContain('=== RECENT COMMITS ===');
+        expect(result).toContain('=== RECENT COMMITS (begin) ===');
+        expect(result).toContain('=== RECENT COMMITS (end) ===');
         expect(result).toContain(log);
     });
 
     it('omits recent commits section when log is empty or whitespace', () => {
         const result = buildContext('diff', '   ');
-        expect(result).not.toContain('=== RECENT COMMITS ===');
+        expect(result).not.toContain('=== RECENT COMMITS');
+    });
+
+    it('produces deterministic structure for empty diff', () => {
+        const result = buildContext('', '');
+        expect(result).toBe('=== STAGED DIFF (begin) ===\n\n=== STAGED DIFF (end) ===');
+    });
+
+    it('uses a single blank line between the diff and recent commits sections', () => {
+        const result = buildContext('a', 'b');
+        expect(result).not.toMatch(/\n\n\n=== RECENT COMMITS/);
+        expect(result).toMatch(/\n\n=== RECENT COMMITS \(begin\) ===/);
     });
 });

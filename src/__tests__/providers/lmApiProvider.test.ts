@@ -4,8 +4,9 @@ import { createMockCancellationToken } from '../helpers/mockCancellationToken';
 
 const mockSelectChatModels = vscode.lm.selectChatModels as jest.Mock;
 
-function createMockModel(overrides?: Partial<{ sendRequest: jest.Mock }>) {
+function createMockModel(overrides?: Partial<{ sendRequest: jest.Mock; family: string }>) {
     return {
+        family: overrides?.family ?? 'claude-sonnet',
         sendRequest: overrides?.sendRequest ?? jest.fn().mockResolvedValue({
             text: (async function* () {
                 yield 'fix: ';
@@ -66,7 +67,9 @@ describe('LmApiProvider', () => {
         });
 
         it('falls back to any Anthropic model when exact family not found', async () => {
-            const model = createMockModel();
+            // Fallback model has a family that starts with the requested family
+            // (e.g. a versioned variant) so no warning should fire.
+            const model = createMockModel({ family: 'claude-sonnet-4-5' });
             mockSelectChatModels.mockResolvedValueOnce([]);
             mockSelectChatModels.mockResolvedValueOnce([model]);
 
@@ -76,6 +79,22 @@ describe('LmApiProvider', () => {
             await provider.generateMessage('inst', 'ctx', token, { model: 'sonnet' });
 
             expect(mockSelectChatModels).toHaveBeenCalledWith({ vendor: 'anthropic' });
+            expect(vscode.window.showWarningMessage).not.toHaveBeenCalled();
+        });
+
+        it('warns when the requested model family is unavailable and a different family is used', async () => {
+            const model = createMockModel({ family: 'claude-haiku' });
+            mockSelectChatModels.mockResolvedValueOnce([]);
+            mockSelectChatModels.mockResolvedValueOnce([model]);
+
+            const provider = new LmApiProvider();
+            const token = createMockCancellationToken();
+
+            await provider.generateMessage('inst', 'ctx', token, { model: 'opus' });
+
+            expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+                expect.stringContaining('"opus" is not available')
+            );
         });
 
         it('falls back to family-only match without vendor filter', async () => {
