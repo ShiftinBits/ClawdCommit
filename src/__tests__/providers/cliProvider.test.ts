@@ -68,7 +68,9 @@ describe('CliProvider', () => {
     });
 
     describe('arguments', () => {
-        it('passes correct args to spawn', async () => {
+        it('passes correct args to spawn (non-Windows)', async () => {
+            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
+
             const provider = new CliProvider('/my/cwd');
             const token = createMockCancellationToken();
 
@@ -88,6 +90,35 @@ describe('CliProvider', () => {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 }
             );
+
+            Object.defineProperty(process, 'platform', { value: process.platform, configurable: true });
+        });
+
+        it('routes through cmd /c on Windows so the npm .cmd shim is resolved', async () => {
+            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+
+            const provider = new CliProvider('/my/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('my instruction', 'ctx', token);
+            mockProcess.emitClose(0);
+            await promise;
+
+            expect(mockSpawn).toHaveBeenCalledWith(
+                'cmd',
+                [
+                    '/c', 'claude',
+                    '-p', 'my instruction',
+                    '--model', 'sonnet',
+                    '--system-prompt', expect.any(String),
+                ],
+                {
+                    cwd: '/my/cwd',
+                    stdio: ['pipe', 'pipe', 'pipe'],
+                }
+            );
+
+            Object.defineProperty(process, 'platform', { value: process.platform, configurable: true });
         });
 
         it('default model is sonnet when no options', async () => {
@@ -99,7 +130,7 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                'claude',
+                expect.any(String),
                 expect.arrayContaining(['--model', 'sonnet']),
                 expect.any(Object)
             );
@@ -114,12 +145,8 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                'claude',
-                [
-                    '-p', 'inst',
-                    '--model', 'opus',
-                    '--system-prompt', expect.any(String),
-                ],
+                expect.any(String),
+                expect.arrayContaining(['-p', 'inst', '--model', 'opus', '--system-prompt', expect.any(String)]),
                 expect.any(Object)
             );
         });
@@ -137,7 +164,7 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                'claude',
+                expect.any(String),
                 expect.arrayContaining(['--model', 'sonnet']),
                 expect.any(Object)
             );

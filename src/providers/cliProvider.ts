@@ -25,13 +25,20 @@ export class CliProvider implements CommitMessageProvider {
                 return;
             }
 
+            // On Windows, npm wraps the claude binary as claude.cmd which
+            // Node's spawn cannot execute without a shell. Route through
+            // cmd /c so Windows resolves the .cmd shim correctly while
+            // still passing each argument as a discrete array element
+            // (avoiding the quoting/newline pitfalls of shell:true).
+            const isWindows = process.platform === 'win32';
+            const command = isWindows ? 'cmd' : 'claude';
+            const args = isWindows
+                ? ['/c', 'claude', '-p', instruction, '--model', model, '--system-prompt', buildSystemPrompt()]
+                : ['-p', instruction, '--model', model, '--system-prompt', buildSystemPrompt()];
+
             const child: ChildProcess = spawn(
-                'claude',
-                [
-                    '-p', instruction,
-                    '--model', model,
-                    '--system-prompt', buildSystemPrompt(),
-                ],
+                command,
+                args,
                 {
                     cwd: this.cwd,
                     stdio: ['pipe', 'pipe', 'pipe'],
