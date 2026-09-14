@@ -1,0 +1,18 @@
+{
+  "projectId": "proj:c5f49debe8144c3f94075b82745b21cb",
+  "branch": "main",
+  "languages": {
+    "typescript": {
+      "fileExtensions": [
+        ".ts",
+        ".tsx"
+      ]
+    },
+    "javascript": {
+      "fileExtensions": [
+        ".js",
+        ".jsx"
+      ]
+    }
+  }
+}
