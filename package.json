@@ -40,7 +40,8 @@
     }
   ],
   "engines": {
-    "vscode": "^1.109.0"
+    "vscode": "^1.109.0",
+    "node": ">=22"
   },
   "categories": [
     "SCM Providers",
@@ -134,7 +135,7 @@
   },
   "devDependencies": {
     "@types/jest": "^29.5.14",
-    "@types/node": "^25.2.3",
+    "@types/node": "^22.20.4",
     "@types/vscode": "^1.109.0",
     "@vscode/vsce": "^3.7.1",
     "esbuild": "^0.27.3",
