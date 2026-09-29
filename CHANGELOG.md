@@ -2,6 +2,28 @@
 
 All notable changes to ClawdCommit will be documented in this file.
 
+## [1.0.0] - 2026-09-29
+
+### Changed
+
+- Development and CI now require Node.js 22 or later.
+- Updated dependencies to resolve npm audit vulnerabilities.
+
+### Fixed
+
+- Fix "claude CLI not found" on Windows when Claude Code is installed via npm. The extension now launches the CLI behind npm's `claude.cmd` shim directly, so multi-line prompts stay intact and cancel/timeout actually stop the CLI (thanks @zerojarvis).
+- Show the Claude CLI's actual error output when it fails without writing to stderr, instead of a bare "Process exited with code 1".
+
+## [0.5.1] - 2026-04-23
+
+### Changed
+
+- Expanded unit test coverage to 100%.
+
+### Fixed
+
+- Route the SCM title Generate button to the correct repo in workspaces with multiple/nested `.git` folders, so staged changes in sub-repos are picked up instead of falling back to the first repository (thanks @ozgur-d).
+
 ## [0.5.0] - 2026-04-23
 
 ### Added
