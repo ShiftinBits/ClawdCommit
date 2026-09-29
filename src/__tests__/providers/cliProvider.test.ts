@@ -239,7 +239,22 @@ describe('CliProvider', () => {
             );
         });
 
-        it('shows generic message when stderr is empty', async () => {
+        it('falls back to stdout when stderr is empty', async () => {
+            const provider = new CliProvider('/cwd');
+            const token = createMockCancellationToken();
+
+            const promise = provider.generateMessage('inst', 'ctx', token);
+            mockProcess.emitStdout('Invalid API key · Please run /login\n');
+            mockProcess.emitClose(1);
+
+            const result = await promise;
+            expect(result).toBeUndefined();
+            expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+                'Claude CLI failed: Invalid API key · Please run /login'
+            );
+        });
+
+        it('shows generic message when stderr and stdout are empty', async () => {
             const provider = new CliProvider('/cwd');
             const token = createMockCancellationToken();
 

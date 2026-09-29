@@ -117,7 +117,8 @@ export class CliProvider implements CommitMessageProvider {
                 }
 
                 if (code !== 0) {
-                    const raw = stderr.trim() || `Process exited with code ${code}`;
+                    // claude -p reports some errors (e.g. auth) on stdout
+                    const raw = stderr.trim() || stdout.trim() || `Process exited with code ${code}`;
                     const msg = raw.length > STDERR_MAX_DISPLAY
                         ? `${raw.slice(0, STDERR_MAX_DISPLAY)}…`
                         : raw;
