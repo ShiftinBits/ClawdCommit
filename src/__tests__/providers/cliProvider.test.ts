@@ -1,6 +1,8 @@
 jest.mock('child_process');
+jest.mock('fs', () => ({ ...jest.requireActual('fs'), existsSync: jest.fn(), readFileSync: jest.fn() }));
 
 import { spawn } from 'child_process';
+import * as fs from 'fs';
 import { CliProvider } from '../../providers/cliProvider';
 import * as vscode from 'vscode';
 import { createMockChildProcess, type MockChildProcess } from '../helpers/mockChildProcess';
@@ -68,9 +70,7 @@ describe('CliProvider', () => {
     });
 
     describe('arguments', () => {
-        it('passes correct args to spawn (non-Windows)', async () => {
-            Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
-
+        it('passes correct args to spawn', async () => {
             const provider = new CliProvider('/my/cwd');
             const token = createMockCancellationToken();
 
@@ -90,35 +90,6 @@ describe('CliProvider', () => {
                     stdio: ['pipe', 'pipe', 'pipe'],
                 }
             );
-
-            Object.defineProperty(process, 'platform', { value: process.platform, configurable: true });
-        });
-
-        it('routes through cmd /c on Windows so the npm .cmd shim is resolved', async () => {
-            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
-
-            const provider = new CliProvider('/my/cwd');
-            const token = createMockCancellationToken();
-
-            const promise = provider.generateMessage('my instruction', 'ctx', token);
-            mockProcess.emitClose(0);
-            await promise;
-
-            expect(mockSpawn).toHaveBeenCalledWith(
-                'cmd',
-                [
-                    '/c', 'claude',
-                    '-p', 'my instruction',
-                    '--model', 'sonnet',
-                    '--system-prompt', expect.any(String),
-                ],
-                {
-                    cwd: '/my/cwd',
-                    stdio: ['pipe', 'pipe', 'pipe'],
-                }
-            );
-
-            Object.defineProperty(process, 'platform', { value: process.platform, configurable: true });
         });
 
         it('default model is sonnet when no options', async () => {
@@ -130,7 +101,7 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                expect.any(String),
+                'claude',
                 expect.arrayContaining(['--model', 'sonnet']),
                 expect.any(Object)
             );
@@ -145,8 +116,12 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                expect.any(String),
-                expect.arrayContaining(['-p', 'inst', '--model', 'opus', '--system-prompt', expect.any(String)]),
+                'claude',
+                [
+                    '-p', 'inst',
+                    '--model', 'opus',
+                    '--system-prompt', expect.any(String),
+                ],
                 expect.any(Object)
             );
         });
@@ -164,7 +139,7 @@ describe('CliProvider', () => {
             await promise;
 
             expect(mockSpawn).toHaveBeenCalledWith(
-                expect.any(String),
+                'claude',
                 expect.arrayContaining(['--model', 'sonnet']),
                 expect.any(Object)
             );
@@ -184,6 +159,67 @@ describe('CliProvider', () => {
             const value = args[flagIndex + 1];
             expect(typeof value).toBe('string');
             expect(value.length).toBeGreaterThan(0);
+        });
+    });
+
+    describe('Windows command resolution', () => {
+        const originalPlatform = process.platform;
+        const originalPath = process.env.PATH;
+        const shim = '@ECHO off\r\n"%_prog%"  "%dp0%\\node_modules\\@anthropic-ai\\claude-code\\cli.js" %*\r\n';
+
+        beforeEach(() => {
+            Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+            process.env.PATH = 'C:\\Windows;C:\\npm';
+        });
+
+        afterEach(() => {
+            Object.defineProperty(process, 'platform', { value: originalPlatform, configurable: true });
+            process.env.PATH = originalPath;
+        });
+
+        const spawnWith = async (files: Record<string, string>) => {
+            (fs.existsSync as jest.Mock).mockImplementation((p: string) => p in files);
+            (fs.readFileSync as jest.Mock).mockImplementation((p: string) => files[p]);
+            const promise = new CliProvider('/cwd').generateMessage('line1\nline2', 'ctx', createMockCancellationToken());
+            mockProcess.emitClose(0);
+            await promise;
+            return mockSpawn.mock.calls[0];
+        };
+
+        it('runs the npm shim target with node, keeping multi-line args intact', async () => {
+            const [command, args] = await spawnWith({ 'C:\\npm\\claude.cmd': shim });
+
+            expect(command).toBe('node');
+            expect(args).toEqual([
+                'C:\\npm\\node_modules\\@anthropic-ai\\claude-code\\cli.js',
+                '-p', 'line1\nline2',
+                '--model', 'sonnet',
+                '--system-prompt', expect.any(String),
+            ]);
+        });
+
+        it('prefers a native claude.exe earlier on PATH', async () => {
+            const [command] = await spawnWith({
+                'C:\\Windows\\claude.exe': '',
+                'C:\\npm\\claude.cmd': shim,
+            });
+            expect(command).toBe('claude');
+        });
+
+        it('falls back to claude when no shim is on PATH', async () => {
+            const [command] = await spawnWith({});
+            expect(command).toBe('claude');
+        });
+
+        it('falls back to claude when the shim has no .js target', async () => {
+            const [command] = await spawnWith({ 'C:\\npm\\claude.cmd': '@ECHO off' });
+            expect(command).toBe('claude');
+        });
+
+        it('handles an unset PATH', async () => {
+            delete process.env.PATH;
+            const [command] = await spawnWith({});
+            expect(command).toBe('claude');
         });
     });
 

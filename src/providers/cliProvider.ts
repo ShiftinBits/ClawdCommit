@@ -1,4 +1,6 @@
 import { spawn, type ChildProcess } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
 import * as vscode from 'vscode';
 import { buildSystemPrompt } from '../prompts';
 import type { CommitMessageProvider, ClaudeModel } from './types';
@@ -6,6 +8,33 @@ import type { CommitMessageProvider, ClaudeModel } from './types';
 const TIMEOUT_MS = 120_000;
 const STDERR_MAX_DISPLAY = 500;
 const ALLOWED_MODELS: ReadonlySet<ClaudeModel> = new Set(['haiku', 'sonnet', 'opus']);
+
+/**
+ * On Windows, npm installs `claude` as a `claude.cmd` shim that spawn cannot
+ * execute without cmd.exe, and cmd.exe truncates multi-line args and hides the
+ * real process from kill(). Resolve the shim's cli.js and run it with node
+ * directly instead. Falls back to plain `claude` (native installer's
+ * claude.exe, or ENOENT when missing).
+ */
+function resolveClaudeCommand(args: string[]): [string, string[]] {
+    if (process.platform !== 'win32') {
+        return ['claude', args];
+    }
+    for (const dir of (process.env.PATH ?? '').split(path.win32.delimiter)) {
+        if (fs.existsSync(path.win32.join(dir, 'claude.exe'))) {
+            break;
+        }
+        const shim = path.win32.join(dir, 'claude.cmd');
+        if (!fs.existsSync(shim)) {
+            continue;
+        }
+        const match = /"%dp0%\\([^"]+\.js)"/.exec(fs.readFileSync(shim, 'utf8'));
+        if (match) {
+            return ['node', [path.win32.join(dir, match[1]), ...args]];
+        }
+    }
+    return ['claude', args];
+}
 
 export class CliProvider implements CommitMessageProvider {
     constructor(private readonly cwd: string) {}
@@ -25,16 +54,11 @@ export class CliProvider implements CommitMessageProvider {
                 return;
             }
 
-            // On Windows, npm wraps the claude binary as claude.cmd which
-            // Node's spawn cannot execute without a shell. Route through
-            // cmd /c so Windows resolves the .cmd shim correctly while
-            // still passing each argument as a discrete array element
-            // (avoiding the quoting/newline pitfalls of shell:true).
-            const isWindows = process.platform === 'win32';
-            const command = isWindows ? 'cmd' : 'claude';
-            const args = isWindows
-                ? ['/c', 'claude', '-p', instruction, '--model', model, '--system-prompt', buildSystemPrompt()]
-                : ['-p', instruction, '--model', model, '--system-prompt', buildSystemPrompt()];
+            const [command, args] = resolveClaudeCommand([
+                '-p', instruction,
+                '--model', model,
+                '--system-prompt', buildSystemPrompt(),
+            ]);
 
             const child: ChildProcess = spawn(
                 command,
